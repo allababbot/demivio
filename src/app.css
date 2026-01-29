@@ -6,18 +6,19 @@
 }
 
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --success: #10b981;
+  --primary: #d97706; /* amber-600 */
+  --primary-dark: #b45309; /* amber-700 */
+  --primary-light: #fcd34d; /* amber-300 */
+  --success: #059669; /* emerald-600 */
   --warning: #f59e0b;
-  --danger: #ef4444;
-  --bg: #0f172a;
-  --bg-card: #1e293b;
-  --bg-input: #334155;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --border: #475569;
-  --radius: 8px;
+  --danger: #dc2626;
+  --bg: #fffbeb; /* amber-50 */
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --text: #1e293b; /* slate-800 */
+  --text-muted: #64748b; /* slate-500 */
+  --border: #e2e8f0; /* slate-200 */
+  --radius: 24px;
 }
 
 * {
@@ -65,10 +66,7 @@ h1 {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
-  background: linear-gradient(135deg, var(--primary), #7c3aed);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary-dark);
 }
 
 .subtitle {
@@ -109,16 +107,18 @@ h1 {
 .card {
   background: var(--bg-card);
   border-radius: var(--radius);
-  padding: 1rem;
-  border: 1px solid var(--border);
+  padding: 1.5rem;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   /* Removed height: 100% to allow auto-sizing */
 }
 
 /* Specific class for full-height cards (results) */
 .card-full {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .card-title {
@@ -145,7 +145,7 @@ h1 {
 .btn-outline:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(251, 191, 36, 0.1); /* amber-400 at 10% */
 }
 
 .form-group {
@@ -252,8 +252,8 @@ input:focus {
 }
 
 .result-box {
-  background: linear-gradient(135deg, var(--bg-card), #1a2744);
-  border: 1px solid var(--border);
+  background: linear-gradient(135deg, #fff7ed, #fefce8);
+  border: 1px solid var(--primary-light);
   border-radius: var(--radius);
   padding: 1.5rem;
   margin-top: 1.5rem;
@@ -312,7 +312,7 @@ td {
 }
 
 tr:hover {
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(251, 191, 36, 0.05); /* amber-400 at 5% */
 }
 
 .badge {
@@ -348,7 +348,7 @@ tr:hover {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), #7c3aed);
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
   transition: width 0.3s;
 }
 

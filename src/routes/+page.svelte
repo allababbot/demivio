@@ -1,5 +1,4 @@
 <script lang="ts">
-
 import Decimal from "decimal.js";
 import {
 	formatRupiah,
@@ -11,6 +10,7 @@ import {
 	getDefaultConfig,
 } from "$lib";
 import type { SimulationResult } from "$lib/types";
+import NumberInput from "$lib/components/NumberInput.svelte";
 
 // Simulate form
 let refPrice = 50000;
@@ -37,21 +37,24 @@ let showParameters = false;
 // Pagination
 let currentPage = 1;
 const itemsPerPage = 10;
-$: paginatedResults = simResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+$: paginatedResults = simResults.slice(
+	(currentPage - 1) * itemsPerPage,
+	currentPage * itemsPerPage,
+);
 $: totalPages = Math.ceil(simResults.length / itemsPerPage);
 
 function changePage(newPage: number) {
-    if (newPage >= 1 && newPage <= totalPages) {
-        currentPage = newPage;
-    }
+	if (newPage >= 1 && newPage <= totalPages) {
+		currentPage = newPage;
+	}
 }
 
 function handleSimulate() {
 	simError = null;
 	simResults = [];
-    currentPage = 1; // Reset pagination
-    simRunning = true;
-    simProgress = 0;
+	currentPage = 1; // Reset pagination
+	simRunning = true;
+	simProgress = 0;
 
 	const config = {
 		...getDefaultConfig(),
@@ -87,7 +90,9 @@ function handleSimulate() {
 			simResults = runSimulation(config, (progress) => {
 				simProgress = progress;
 			});
-			simResults.sort((a, b) => a.ppnDifference.abs().minus(b.ppnDifference.abs()).toNumber());
+			simResults.sort((a, b) =>
+				a.ppnDifference.abs().minus(b.ppnDifference.abs()).toNumber(),
+			);
 
 			if (simResults.length === 0) {
 				simError =
@@ -116,15 +121,15 @@ function handleSimulate() {
         <div class="form-row">
           <div class="form-group">
             <label>Harga Satuan (Rp)</label>
-            <input type="number" bind:value={refPrice} min="0" />
+            <NumberInput bind:value={refPrice} min={0} />
           </div>
           <div class="form-group">
             <label>Qty</label>
-            <input type="number" bind:value={refQuantity} min="0" />
+            <NumberInput bind:value={refQuantity} min={0} />
           </div>
           <div class="form-group">
             <label>Potongan (Rp)</label>
-            <input type="number" bind:value={refDiscount} min="0" />
+            <NumberInput bind:value={refDiscount} min={0} />
           </div>
         </div>
       </div>
@@ -133,7 +138,7 @@ function handleSimulate() {
         <h2 class="card-title">2. Target PPN</h2>
         <div class="form-row">
           <div class="form-group">
-            <input type="number" bind:value={targetPpn} min="0" />
+            <NumberInput bind:value={targetPpn} min={0} />
           </div>
         </div>
       </div>
@@ -150,21 +155,21 @@ function handleSimulate() {
         <div class="form-row">
           <div class="form-group">
             <label>Var Harga (%)</label>
-            <input type="number" bind:value={priceVariance} min="0" max="100" />
+            <NumberInput bind:value={priceVariance} min={0} max={100} />
           </div>
           <div class="form-group">
             <label>Var Potongan (%)</label>
-            <input type="number" bind:value={discountVariance} min="0" max="100" />
+            <NumberInput bind:value={discountVariance} min={0} max={100} />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>Qty Min</label>
-            <input type="number" bind:value={qtyMin} min="1" />
+            <NumberInput bind:value={qtyMin} min={1} />
           </div>
           <div class="form-group">
             <label>Qty Max</label>
-            <input type="number" bind:value={qtyMax} min="1" />
+            <NumberInput bind:value={qtyMax} min={1} />
           </div>
         </div>
 
@@ -245,7 +250,7 @@ function handleSimulate() {
             </div>
           {/if}
          {:else if !simRunning}
-            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted);">
+            <div style="display: flex; align-items: center; justify-content: center; padding: 3rem 0; color: var(--text-muted);">
                 Silakan jalankan simulasi untuk melihat hasil.
             </div>
          {/if}
