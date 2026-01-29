@@ -25,7 +25,12 @@ let qtyMax = 100;
 let qtyStep = 1;
 let priceStep = 1;
 let discountStep = 1;
+
 let topN = 10000;
+
+let isPriceLocked = false;
+let isQtyLocked = false;
+let isDiscountLocked = false;
 
 let simResults: SimulationResult[] = [];
 let simError: string | null = null;
@@ -65,10 +70,10 @@ function handleSimulate() {
 		),
 		targetPpn: new Decimal(targetPpn ?? 0),
 		tolerance: new Decimal(tolerance ?? 0),
-		unitPriceVariancePercent: new Decimal(priceVariance ?? 0),
-		discountVariancePercent: new Decimal(discountVariance ?? 0),
-		quantityMin: new Decimal(qtyMin ?? 1),
-		quantityMax: new Decimal(qtyMax ?? 100),
+		unitPriceVariancePercent: isPriceLocked ? new Decimal(0) : new Decimal(priceVariance ?? 0),
+		discountVariancePercent: isDiscountLocked ? new Decimal(0) : new Decimal(discountVariance ?? 0),
+		quantityMin: isQtyLocked ? new Decimal(refQuantity ?? 1) : new Decimal(qtyMin ?? 1),
+		quantityMax: isQtyLocked ? new Decimal(refQuantity ?? 100) : new Decimal(qtyMax ?? 100),
 		quantityStep: new Decimal(qtyStep ?? 1),
 		priceStep: new Decimal(priceStep ?? 100),
 		discountStep: new Decimal(discountStep ?? 100),
@@ -121,15 +126,15 @@ function handleSimulate() {
         <div class="form-row">
           <div class="form-group">
             <label>Harga Satuan (Rp)</label>
-            <NumberInput bind:value={refPrice} min={0} />
+            <NumberInput bind:value={refPrice} min={0} showLock={true} bind:locked={isPriceLocked} />
           </div>
           <div class="form-group">
             <label>Qty</label>
-            <NumberInput bind:value={refQuantity} min={0} />
+            <NumberInput bind:value={refQuantity} min={0} showLock={true} bind:locked={isQtyLocked} />
           </div>
           <div class="form-group">
             <label>Potongan (Rp)</label>
-            <NumberInput bind:value={refDiscount} min={0} />
+            <NumberInput bind:value={refDiscount} min={0} showLock={true} bind:locked={isDiscountLocked} />
           </div>
         </div>
       </div>

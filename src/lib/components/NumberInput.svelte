@@ -6,6 +6,8 @@
   export let max: number | undefined = undefined;
   export let placeholder: string = '';
   export let disabled: boolean = false;
+  export let locked: boolean = false;
+  export let showLock: boolean = false;
 
   const dispatch = createEventDispatcher();
   let inputElement: HTMLInputElement;
@@ -71,21 +73,50 @@
       inputElement.type = 'text';
       inputElement.value = format(value);
   }
+
+  function toggleLock() {
+      locked = !locked;
+      dispatch('lock', locked);
+  }
 </script>
 
-<input
-  bind:this={inputElement}
-  type="text"
-  {placeholder}
-  {disabled}
-  {min}
-  {max}
-  on:focus={handleFocus}
-  on:blur={handleBlur}
-  on:input={handleInput}
-/>
+<div class="input-wrapper">
+    <input
+    bind:this={inputElement}
+    type="text"
+    {placeholder}
+    {disabled}
+    {min}
+    {max}
+    class:has-lock={showLock}
+    on:focus={handleFocus}
+    on:blur={handleBlur}
+    on:input={handleInput}
+    />
+    
+    {#if showLock}
+        <button 
+            type="button" 
+            class="lock-btn" 
+            class:locked 
+            on:click={toggleLock}
+            title={locked ? "Terkunci" : "Tidak Terkunci"}
+        >
+            {#if locked}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            {:else}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+            {/if}
+        </button>
+    {/if}
+</div>
 
 <style>
+  .input-wrapper {
+      position: relative;
+      width: 100%;
+  }
+
   input {
     width: 100%;
     padding: 0.5rem 0.75rem;
@@ -97,8 +128,36 @@
     transition: border-color 0.2s;
   }
 
+  input.has-lock {
+      padding-right: 2.5rem;
+  }
+
   input:focus {
     outline: none;
     border-color: var(--primary);
+  }
+
+  .lock-btn {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem;
+      transition: color 0.2s;
+  }
+
+  .lock-btn:hover {
+      color: var(--text);
+  }
+
+  .lock-btn.locked {
+      color: var(--primary);
   }
 </style>
