@@ -1,115 +1,162 @@
 <script lang="ts">
-import Decimal from "decimal.js";
-import {
-	formatRupiah,
-	formatNumber,
-	runSimulation,
-	validateConfig,
-	estimateCombinations,
-	createTransaction,
-	getDefaultConfig,
-} from "$lib";
-import type { SimulationResult } from "$lib/types";
-import NumberInput from "$lib/components/NumberInput.svelte";
+  import Decimal from "decimal.js";
+  import { formatRupiah, formatNumber, getDefaultConfig } from "$lib";
+  import type { SimulationResult } from "$lib/types";
+  import type {
+    SerializableSimulationConfig,
+    SerializableSimulationResult,
+    WorkerRequest,
+    WorkerResponse,
+  } from "$lib/worker-types";
+  import NumberInput from "$lib/components/NumberInput.svelte";
+  import { onMount, onDestroy } from "svelte";
+  import { browser } from "$app/environment";
 
-// Simulate form
-let refPrice = 50000;
-let refQuantity = 20;
-let refDiscount = 15000;
-let targetPpn = 120000;
-let tolerance = 1;
-let priceVariance = 5;
-let discountVariance = 5;
-let qtyMin = 1;
-let qtyMax = 100;
-let qtyStep = 1;
-let priceStep = 1;
-let discountStep = 1;
+  // Simulate form
+  let refPrice = 50000;
+  let refQuantity = 20;
+  let refDiscount = 15000;
+  let targetPpn = 120000;
+  let tolerance = 1;
+  let priceVariance = 5;
+  let discountVariance = 5;
+  let qtyMin = 1;
+  let qtyMax = 100;
+  let qtyStep = 1;
+  let priceStep = 1;
+  let discountStep = 1;
 
-let topN = 10000;
+  let topN = 10000;
 
-let isPriceLocked = false;
-let isQtyLocked = false;
-let isDiscountLocked = false;
+  let isPriceLocked = false;
+  let isQtyLocked = false;
+  let isDiscountLocked = false;
 
-let simResults: SimulationResult[] = [];
-let simError: string | null = null;
-let simRunning = false;
-let simProgress = 0;
-let simEstimate = 0;
-let showParameters = false;
+  // Results with plain numbers (from worker)
+  let simResults: SerializableSimulationResult[] = [];
+  let simError: string | null = null;
+  let simRunning = false;
+  let simProgress = 0;
+  let simEstimate = 0;
+  let simElapsed = 0;
+  let showParameters = false;
 
-// Pagination
-let currentPage = 1;
-const itemsPerPage = 10;
-$: paginatedResults = simResults.slice(
-	(currentPage - 1) * itemsPerPage,
-	currentPage * itemsPerPage,
-);
-$: totalPages = Math.ceil(simResults.length / itemsPerPage);
+  // Web Worker
+  let worker: Worker | null = null;
 
-function changePage(newPage: number) {
-	if (newPage >= 1 && newPage <= totalPages) {
-		currentPage = newPage;
-	}
-}
+  // Pagination
+  let currentPage = 1;
+  const itemsPerPage = 10;
+  $: paginatedResults = simResults.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+  $: totalPages = Math.ceil(simResults.length / itemsPerPage);
 
-function handleSimulate() {
-	simError = null;
-	simResults = [];
-	currentPage = 1; // Reset pagination
-	simRunning = true;
-	simProgress = 0;
+  function changePage(newPage: number) {
+    if (newPage >= 1 && newPage <= totalPages) {
+      currentPage = newPage;
+    }
+  }
 
-	const config = {
-		...getDefaultConfig(),
-		referenceTransaction: createTransaction(
-			refPrice ?? 0,
-			refQuantity ?? 0,
-			refDiscount ?? 0,
-		),
-		targetPpn: new Decimal(targetPpn ?? 0),
-		tolerance: new Decimal(tolerance ?? 0),
-		unitPriceVariancePercent: isPriceLocked ? new Decimal(0) : new Decimal(priceVariance ?? 0),
-		discountVariancePercent: isDiscountLocked ? new Decimal(0) : new Decimal(discountVariance ?? 0),
-		quantityMin: isQtyLocked ? new Decimal(refQuantity ?? 1) : new Decimal(qtyMin ?? 1),
-		quantityMax: isQtyLocked ? new Decimal(refQuantity ?? 100) : new Decimal(qtyMax ?? 100),
-		quantityStep: new Decimal(qtyStep ?? 1),
-		priceStep: new Decimal(priceStep ?? 100),
-		discountStep: new Decimal(discountStep ?? 100),
-		topNResults: topN ?? 10,
-	};
+  // Initialize worker on mount
+  onMount(() => {
+    if (browser) {
+      worker = new Worker(
+        new URL("$lib/simulator.worker.ts", import.meta.url),
+        { type: "module" },
+      );
 
-	const error = validateConfig(config);
-	if (error) {
-		simError = error;
-		simRunning = false;
-		return;
-	}
+      worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+        const response = event.data;
 
-	simEstimate = estimateCombinations(config);
+        if (response.type === "progress") {
+          simProgress = response.progress;
+          simEstimate = response.estimate;
+        } else if (response.type === "result") {
+          simResults = response.results;
+          simElapsed = response.elapsed;
+          simRunning = false;
+          simProgress = 1;
 
-	// Run simulation with setTimeout to allow UI updates
-	setTimeout(() => {
-		try {
-			simResults = runSimulation(config, (progress) => {
-				simProgress = progress;
-			});
-			simResults.sort((a, b) =>
-				a.ppnDifference.abs().minus(b.ppnDifference.abs()).toNumber(),
-			);
+          if (simResults.length === 0) {
+            simError =
+              "Tidak ditemukan hasil dalam toleransi yang ditentukan. Coba perbesar toleransi atau range.";
+          }
+        } else if (response.type === "error") {
+          simError = response.message;
+          simRunning = false;
+        }
+      };
 
-			if (simResults.length === 0) {
-				simError =
-					"Tidak ditemukan hasil dalam toleransi yang ditentukan. Coba perbesar toleransi atau range.";
-			}
-		} catch (e) {
-			simError = e instanceof Error ? e.message : "Terjadi kesalahan";
-		}
-		simRunning = false;
-		simProgress = 1;
-	}, 50);
-}
+      worker.onerror = (error) => {
+        simError = `Worker error: ${error.message}`;
+        simRunning = false;
+      };
+    }
+  });
+
+  // Clean up worker on destroy
+  onDestroy(() => {
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+  });
+
+  function handleSimulate() {
+    if (!worker) {
+      simError = "Worker tidak tersedia";
+      return;
+    }
+
+    simError = null;
+    simResults = [];
+    currentPage = 1; // Reset pagination
+    simRunning = true;
+    simProgress = 0;
+    simElapsed = 0;
+
+    // Build serializable config
+    const config: SerializableSimulationConfig = {
+      referenceTransaction: {
+        unitPrice: refPrice ?? 0,
+        quantity: refQuantity ?? 0,
+        discount: refDiscount ?? 0,
+      },
+      targetPpn: targetPpn ?? 0,
+      tolerance: tolerance ?? 0,
+      unitPriceVariancePercent: isPriceLocked ? 0 : (priceVariance ?? 0),
+      discountVariancePercent: isDiscountLocked ? 0 : (discountVariance ?? 0),
+      quantityMin: isQtyLocked ? (refQuantity ?? 1) : (qtyMin ?? 1),
+      quantityMax: isQtyLocked ? (refQuantity ?? 100) : (qtyMax ?? 100),
+      quantityStep: qtyStep ?? 1,
+      priceStep: priceStep ?? 100,
+      discountStep: discountStep ?? 100,
+      alpha: 1,
+      beta: 1,
+      topNResults: topN ?? 10,
+    };
+
+    // Send to worker
+    const request: WorkerRequest = { type: "start", config };
+    worker.postMessage(request);
+  }
+
+  function handleCancel() {
+    if (worker) {
+      const request: WorkerRequest = { type: "cancel" };
+      worker.postMessage(request);
+      simRunning = false;
+      simProgress = 0;
+    }
+  }
+
+  // Format elapsed time
+  function formatElapsed(ms: number): string {
+    if (ms < 1000) return `${ms.toFixed(0)}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  }
 </script>
 
 <div class="container">
@@ -125,16 +172,34 @@ function handleSimulate() {
         <h2 class="card-title">1. Transaksi Acuan</h2>
         <div class="form-row">
           <div class="form-group">
-            <label>Harga Satuan (Rp)</label>
-            <NumberInput bind:value={refPrice} min={0} showLock={true} bind:locked={isPriceLocked} />
+            <label for="ref-price">Harga Satuan (Rp)</label>
+            <NumberInput
+              id="ref-price"
+              bind:value={refPrice}
+              min={0}
+              showLock={true}
+              bind:locked={isPriceLocked}
+            />
           </div>
           <div class="form-group">
-            <label>Qty</label>
-            <NumberInput bind:value={refQuantity} min={0} showLock={true} bind:locked={isQtyLocked} />
+            <label for="ref-qty">Qty</label>
+            <NumberInput
+              id="ref-qty"
+              bind:value={refQuantity}
+              min={0}
+              showLock={true}
+              bind:locked={isQtyLocked}
+            />
           </div>
           <div class="form-group">
-            <label>Potongan (Rp)</label>
-            <NumberInput bind:value={refDiscount} min={0} showLock={true} bind:locked={isDiscountLocked} />
+            <label for="ref-discount">Potongan (Rp)</label>
+            <NumberInput
+              id="ref-discount"
+              bind:value={refDiscount}
+              min={0}
+              showLock={true}
+              bind:locked={isDiscountLocked}
+            />
           </div>
         </div>
       </div>
@@ -143,61 +208,90 @@ function handleSimulate() {
         <h2 class="card-title">2. Target PPN</h2>
         <div class="form-row">
           <div class="form-group">
-            <NumberInput bind:value={targetPpn} min={0} />
+            <label for="target-ppn">Nominal PPN (Rp)</label>
+            <NumberInput id="target-ppn" bind:value={targetPpn} min={0} />
           </div>
         </div>
       </div>
 
       <div class="card" style="margin-bottom: 0.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <h2 class="card-title" style="margin-bottom: 0;">3. Parameter</h2>
-            <button class="btn btn-sm btn-outline" on:click={() => showParameters = !showParameters}>
-                {showParameters ? "Sembunyikan" : "Modifikasi"}
-            </button>
-        </div>
-        
-        {#if showParameters}
-        <div class="form-row">
-          <div class="form-group">
-            <label>Var Harga (%)</label>
-            <NumberInput bind:value={priceVariance} min={0} max={100} />
-          </div>
-          <div class="form-group">
-            <label>Var Potongan (%)</label>
-            <NumberInput bind:value={discountVariance} min={0} max={100} />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Qty Min</label>
-            <NumberInput bind:value={qtyMin} min={1} />
-          </div>
-          <div class="form-group">
-            <label>Qty Max</label>
-            <NumberInput bind:value={qtyMax} min={1} />
-          </div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;"
+        >
+          <h2 class="card-title" style="margin-bottom: 0;">3. Parameter</h2>
+          <button
+            class="btn btn-sm btn-outline"
+            on:click={() => (showParameters = !showParameters)}
+          >
+            {showParameters ? "Sembunyikan" : "Modifikasi"}
+          </button>
         </div>
 
+        {#if showParameters}
+          <div class="form-row">
+            <div class="form-group">
+              <label for="price-variance">Var Harga (%)</label>
+              <NumberInput
+                id="price-variance"
+                bind:value={priceVariance}
+                min={0}
+                max={100}
+              />
+            </div>
+            <div class="form-group">
+              <label for="discount-variance">Var Potongan (%)</label>
+              <NumberInput
+                id="discount-variance"
+                bind:value={discountVariance}
+                min={0}
+                max={100}
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="qty-min">Qty Min</label>
+              <NumberInput id="qty-min" bind:value={qtyMin} min={1} />
+            </div>
+            <div class="form-group">
+              <label for="qty-max">Qty Max</label>
+              <NumberInput id="qty-max" bind:value={qtyMax} min={1} />
+            </div>
+          </div>
         {/if}
       </div>
 
-      <button
+      <div style="display: flex; gap: 0.5rem;">
+        <button
           class="btn btn-primary"
-          style="width: 100%;"
+          style="flex: 1;"
           on:click={handleSimulate}
           disabled={simRunning}
-      >
+        >
           {simRunning ? "..." : "Jalankan"}
-      </button>
+        </button>
+        {#if simRunning}
+          <button
+            class="btn btn-outline"
+            style="background: var(--danger); color: white; border: none;"
+            on:click={handleCancel}
+          >
+            Batal
+          </button>
+        {/if}
+      </div>
     </div>
 
     <!-- MAIN CONTENT: Results -->
     <div class="main-content">
-       {#if simRunning}
+      {#if simRunning}
         <div class="card">
           <p>Memproses {simEstimate.toLocaleString()} kombinasi...</p>
           <div class="progress-bar">
-            <div class="progress-fill" style="width: {simProgress * 100}%"></div>
+            <div
+              class="progress-fill"
+              style="width: {simProgress * 100}%"
+            ></div>
           </div>
         </div>
       {/if}
@@ -207,10 +301,17 @@ function handleSimulate() {
       {/if}
 
       <div class="card">
-         <h2 class="card-title">
-            Hasil Pencarian ({simResults.length})
-         </h2>
-         {#if simResults.length > 0}
+        <h2 class="card-title">
+          Hasil Pencarian ({simResults.length})
+          {#if simElapsed > 0}
+            <span
+              style="font-weight: normal; font-size: 0.75rem; color: var(--text-muted);"
+            >
+              dalam {formatElapsed(simElapsed)}
+            </span>
+          {/if}
+        </h2>
+        {#if simResults.length > 0}
           <div style="flex: 1; overflow: auto; min-height: 0;">
             <table>
               <thead>
@@ -227,7 +328,11 @@ function handleSimulate() {
               <tbody>
                 {#each paginatedResults as result, i}
                   <tr>
-                    <td><span class="badge badge-rank">{(currentPage - 1) * itemsPerPage + i + 1}</span></td>
+                    <td
+                      ><span class="badge badge-rank"
+                        >{(currentPage - 1) * itemsPerPage + i + 1}</span
+                      ></td
+                    >
                     <td>{formatRupiah(result.transaction.unitPrice)}</td>
                     <td>{formatNumber(result.transaction.quantity)}</td>
                     <td>{formatRupiah(result.transaction.discount)}</td>
@@ -242,23 +347,35 @@ function handleSimulate() {
 
           <!-- Pagination Controls -->
           {#if totalPages > 1}
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border);">
-                <button class="btn btn-sm btn-outline" disabled={currentPage === 1} on:click={() => changePage(currentPage - 1)}>
-                    &laquo; Sebelumnya
-                </button>
-                <span style="font-size: 0.875rem; color: var(--text-muted);">
-                    Halaman {currentPage} dari {totalPages}
-                </span>
-                <button class="btn btn-sm btn-outline" disabled={currentPage === totalPages} on:click={() => changePage(currentPage + 1)}>
-                    Selanjutnya &raquo;
-                </button>
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border);"
+            >
+              <button
+                class="btn btn-sm btn-outline"
+                disabled={currentPage === 1}
+                on:click={() => changePage(currentPage - 1)}
+              >
+                &laquo; Sebelumnya
+              </button>
+              <span style="font-size: 0.875rem; color: var(--text-muted);">
+                Halaman {currentPage} dari {totalPages}
+              </span>
+              <button
+                class="btn btn-sm btn-outline"
+                disabled={currentPage === totalPages}
+                on:click={() => changePage(currentPage + 1)}
+              >
+                Selanjutnya &raquo;
+              </button>
             </div>
           {/if}
-         {:else if !simRunning}
-            <div style="display: flex; align-items: center; justify-content: center; padding: 3rem 0; color: var(--text-muted);">
-                Silakan jalankan simulasi untuk melihat hasil.
-            </div>
-         {/if}
+        {:else if !simRunning}
+          <div
+            style="display: flex; align-items: center; justify-content: center; padding: 3rem 0; color: var(--text-muted);"
+          >
+            Silakan jalankan simulasi untuk melihat hasil.
+          </div>
+        {/if}
       </div>
     </div>
   </div>
