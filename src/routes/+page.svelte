@@ -18,8 +18,26 @@
   let refDiscount = 15000;
   let targetPpn = 120000;
   let tolerance = 1;
-  let priceVariance = 5;
-  let discountVariance = 5;
+  let priceMin = Math.floor(refPrice * 0.95);
+  let priceMax = Math.ceil(refPrice * 1.05);
+  let discountMin = Math.floor(refDiscount * 0.95);
+  let discountMax = Math.ceil(refDiscount * 1.05);
+
+  let prevRefPrice = refPrice;
+  let prevRefDiscount = refDiscount;
+
+  // Reactively update defaults when reference values change
+  $: if (refPrice !== prevRefPrice) {
+    priceMin = Math.floor(refPrice * 0.95);
+    priceMax = Math.ceil(refPrice * 1.05);
+    prevRefPrice = refPrice;
+  }
+
+  $: if (refDiscount !== prevRefDiscount) {
+    discountMin = Math.floor(refDiscount * 0.95);
+    discountMax = Math.ceil(refDiscount * 1.05);
+    prevRefDiscount = refDiscount;
+  }
   let qtyMin = 1;
   let qtyMax = 100;
   let qtyStep = 1;
@@ -126,8 +144,12 @@
       },
       targetPpn: targetPpn ?? 0,
       tolerance: tolerance ?? 0,
-      unitPriceVariancePercent: isPriceLocked ? 0 : (priceVariance ?? 0),
-      discountVariancePercent: isDiscountLocked ? 0 : (discountVariance ?? 0),
+      priceMin: isPriceLocked ? (refPrice ?? 0) : (priceMin ?? 0),
+      priceMax: isPriceLocked ? (refPrice ?? 0) : (priceMax ?? 1000000),
+      discountMin: isDiscountLocked ? (refDiscount ?? 0) : (discountMin ?? 0),
+      discountMax: isDiscountLocked
+        ? (refDiscount ?? 0)
+        : (discountMax ?? 1000000),
       quantityMin: isQtyLocked ? (refQuantity ?? 1) : (qtyMin ?? 1),
       quantityMax: isQtyLocked ? (refQuantity ?? 100) : (qtyMax ?? 100),
       quantityStep: qtyStep ?? 1,
@@ -180,7 +202,11 @@
 <div class="container">
   <div class="header">
     <h1>Demivio</h1>
-    <p class="subtitle">Kamu bong-bong yaa</p>
+    <p class="subtitle">
+      Bayangkan kamu punya punya nilai PPN yang tidak kamu ketahui nilai harga,
+      qty, atau potongannya. <br />Maka disini kamu bisa menemukan berbagai
+      kombinasi untuk nilai PPN itu.
+    </p>
   </div>
 
   <div class="dashboard-grid">
@@ -240,30 +266,33 @@
           <button
             class="btn btn-sm btn-outline"
             on:click={() => (showParameters = !showParameters)}
+            title={showParameters
+              ? "Sembunyikan Parameter"
+              : "Modifikasi Parameter"}
           >
-            {showParameters ? "Sembunyikan" : "Modifikasi"}
+            {showParameters ? "✕" : "⚙"}
           </button>
         </div>
 
         {#if showParameters}
           <div class="form-row">
             <div class="form-group">
-              <label for="price-variance">Var Harga (%)</label>
-              <NumberInput
-                id="price-variance"
-                bind:value={priceVariance}
-                min={0}
-                max={100}
-              />
+              <label for="price-min">Harga Min (Rp)</label>
+              <NumberInput id="price-min" bind:value={priceMin} min={0} />
             </div>
             <div class="form-group">
-              <label for="discount-variance">Var Potongan (%)</label>
-              <NumberInput
-                id="discount-variance"
-                bind:value={discountVariance}
-                min={0}
-                max={100}
-              />
+              <label for="price-max">Harga Max (Rp)</label>
+              <NumberInput id="price-max" bind:value={priceMax} min={0} />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="discount-min">Potongan Min (Rp)</label>
+              <NumberInput id="discount-min" bind:value={discountMin} min={0} />
+            </div>
+            <div class="form-group">
+              <label for="discount-max">Potongan Max (Rp)</label>
+              <NumberInput id="discount-max" bind:value={discountMax} min={0} />
             </div>
           </div>
           <div class="form-row">

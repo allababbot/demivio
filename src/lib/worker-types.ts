@@ -19,8 +19,10 @@ export interface SerializableSimulationConfig {
   referenceTransaction: SerializableTransaction;
   targetPpn: number;
   tolerance: number;
-  unitPriceVariancePercent: number;
-  discountVariancePercent: number;
+  priceMin: number;
+  priceMax: number;
+  discountMin: number;
+  discountMax: number;
   quantityMin: number;
   quantityMax: number;
   quantityStep: number;

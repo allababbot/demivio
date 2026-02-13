@@ -50,32 +50,6 @@ function createResult(
 }
 
 /**
- * Get price range based on variance
- */
-function getPriceRange(config: SimulationConfig): [Decimal, Decimal] {
-  const variance = config.referenceTransaction.unitPrice
-    .mul(config.unitPriceVariancePercent)
-    .div(100);
-  return [
-    config.referenceTransaction.unitPrice.sub(variance),
-    config.referenceTransaction.unitPrice.add(variance)
-  ];
-}
-
-/**
- * Get discount range based on variance
- */
-function getDiscountRange(config: SimulationConfig): [Decimal, Decimal] {
-  const variance = config.referenceTransaction.discount
-    .mul(config.discountVariancePercent)
-    .div(100);
-  return [
-    Decimal.max(config.referenceTransaction.discount.sub(variance), 0),
-    config.referenceTransaction.discount.add(variance)
-  ];
-}
-
-/**
  * Calculate exact unit price needed for target PPN
  * Formula: unitPrice = (targetPpn / 0.11 + discount) / quantity
  */
@@ -182,9 +156,7 @@ function* generatePriorityOrder(
  * Estimate number of combinations (for math approach: qty × discount only)
  */
 export function estimateCombinations(config: SimulationConfig): number {
-  const [discountMin, discountMax] = getDiscountRange(config);
-
-  const discountCount = discountMax.sub(discountMin).div(config.discountStep).floor().toNumber() + 1;
+  const discountCount = config.discountMax.sub(config.discountMin).div(config.discountStep).floor().toNumber() + 1;
   const quantityCount = config.quantityMax.sub(config.quantityMin).div(config.quantityStep).floor().toNumber() + 1;
 
   return discountCount * quantityCount;
@@ -204,8 +176,10 @@ export function runSimulation(
   const seen = new Set<string>(); // Option A: O(1) deduplication
   
   // Get ranges
-  const [priceMin, priceMax] = getPriceRange(config);
-  const [discountMin, discountMax] = getDiscountRange(config);
+  const priceMin = config.priceMin;
+  const priceMax = config.priceMax;
+  const discountMin = config.discountMin;
+  const discountMax = config.discountMax;
   
   let count = 0;
   let perfectCount = 0; // Count of results with ppnDifference = 0

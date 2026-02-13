@@ -19,8 +19,10 @@ export interface SimulationConfig {
   referenceTransaction: Transaction;
   targetPpn: Decimal;
   tolerance: Decimal;
-  unitPriceVariancePercent: Decimal;
-  discountVariancePercent: Decimal;
+  priceMin: Decimal;
+  priceMax: Decimal;
+  discountMin: Decimal;
+  discountMax: Decimal;
   quantityMin: Decimal;
   quantityMax: Decimal;
   quantityStep: Decimal;
@@ -74,8 +76,10 @@ export function getDefaultConfig(): SimulationConfig {
     },
     targetPpn: new Decimal(0),
     tolerance: new Decimal(1000),
-    unitPriceVariancePercent: new Decimal(5),
-    discountVariancePercent: new Decimal(5),
+    priceMin: new Decimal(0),
+    priceMax: new Decimal(1000000),
+    discountMin: new Decimal(0),
+    discountMax: new Decimal(1000000),
     quantityMin: new Decimal(1),
     quantityMax: new Decimal(1000),
     quantityStep: new Decimal(1),
