@@ -23,8 +23,12 @@
   // Parse formatted string (1.000 -> 1000)
   function parse(str: string): number | null {
     if (!str) return null;
-    // Remove dots (thousands separator) and replace comma with dot (decimal) if any
-    const cleanStr = str.replace(/\./g, "").replace(",", ".");
+    // 1. Remove dots (thousands separator)
+    let s = str.replace(/\./g, "");
+    // 2. Normalize comma to dot (decimal separator for JS)
+    s = s.replace(",", ".");
+    // 3. Remove all characters except digits, minus sign, and dot
+    const cleanStr = s.replace(/[^-0-9.]/g, "");
     const num = parseFloat(cleanStr);
     return isNaN(num) ? null : num;
   }
@@ -33,7 +37,6 @@
   function handleFocus() {
     isFocused = true;
     if (inputElement) {
-      inputElement.type = "number"; // Switch to number input for mobile keyboards
       inputElement.value = value?.toString() ?? "";
     }
   }
@@ -42,7 +45,6 @@
   function handleBlur() {
     isFocused = false;
     if (inputElement) {
-      inputElement.type = "text"; // Switch back to text for formatting
       inputElement.value = format(value);
     }
   }
@@ -85,6 +87,7 @@
   <input
     bind:this={inputElement}
     type="text"
+    inputmode="numeric"
     {id}
     {placeholder}
     {disabled}
