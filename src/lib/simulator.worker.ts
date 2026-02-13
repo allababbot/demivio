@@ -59,7 +59,8 @@ function serializeResult(result: SimulationResult): SerializableSimulationResult
       ppnDifferencePercent: result.metadata.ppnDifferencePercent.toNumber(),
       unitPriceDifference: result.metadata.unitPriceDifference.toNumber(),
       quantityDifference: result.metadata.quantityDifference.toNumber(),
-      discountDifference: result.metadata.discountDifference.toNumber()
+      discountDifference: result.metadata.discountDifference.toNumber(),
+      dppNilaiLain: result.metadata.dppNilaiLain.toNumber()
     }
   };
 }

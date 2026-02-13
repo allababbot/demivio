@@ -39,6 +39,7 @@ export interface SerializableResultMetadata {
   unitPriceDifference: number;
   quantityDifference: number;
   discountDifference: number;
+  dppNilaiLain: number;
 }
 
 /**

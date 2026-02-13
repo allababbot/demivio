@@ -36,7 +36,8 @@ function createResult(
       : ppnDifference.div(targetPpn).mul(100),
     unitPriceDifference: transaction.unitPrice.sub(reference.unitPrice),
     quantityDifference: transaction.quantity.sub(reference.quantity),
-    discountDifference: transaction.discount.sub(reference.discount)
+    discountDifference: transaction.discount.sub(reference.discount),
+    dppNilaiLain: transaction.unitPrice.mul(transaction.quantity).sub(transaction.discount).mul(11).div(12)
   };
 
   return {

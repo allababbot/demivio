@@ -39,6 +39,7 @@ export interface ResultMetadata {
   unitPriceDifference: Decimal;
   quantityDifference: Decimal;
   discountDifference: Decimal;
+  dppNilaiLain: Decimal;
 }
 
 /**
