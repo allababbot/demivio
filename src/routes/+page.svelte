@@ -52,7 +52,7 @@
   let priceStep = 1;
   let discountStep = 1;
 
-  let topN = 10000;
+  let topN = 100;
 
   let isPriceLocked = false;
   let isQtyLocked = false;
@@ -213,7 +213,16 @@
                 ]),
               ).values(),
             );
-            uniqueResults.sort((a, b) => a.score - b.score);
+            uniqueResults.sort((a, b) => {
+              // 1. Prioritize zero difference (Perfect Match)
+              const aPerfect = a.ppnDifference === 0;
+              const bPerfect = b.ppnDifference === 0;
+              if (aPerfect && !bPerfect) return -1;
+              if (!aPerfect && bPerfect) return 1;
+
+              // 2. Fallback to similarity score (smaller is better)
+              return a.score - b.score;
+            });
             simResults = uniqueResults.slice(0, topN);
 
             simElapsed = performance.now() - startTime;
@@ -374,6 +383,12 @@
             <div class="form-group">
               <label for="qty-max">Qty Max</label>
               <NumberInput id="qty-max" bind:value={qtyMax} min={1} />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="top-n">Jumlah Hasil Maksimum</label>
+              <NumberInput id="top-n" bind:value={topN} min={1} max={10000} />
             </div>
           </div>
         {/if}

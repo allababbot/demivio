@@ -147,8 +147,14 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
         });
       }
 
-      // Sort results by score (closest/best first) for the final response
-      results.sort((a, b) => a.score.cmp(b.score));
+      // Sort results by priority: Perfect matches first, then by score
+      results.sort((a, b) => {
+        const aPerfect = a.ppnDifference.isZero();
+        const bPerfect = b.ppnDifference.isZero();
+        if (aPerfect && !bPerfect) return -1;
+        if (!aPerfect && bPerfect) return 1;
+        return a.score.cmp(b.score);
+      });
 
       // Serialize and send final results summary
       const elapsed = performance.now() - startTime;
