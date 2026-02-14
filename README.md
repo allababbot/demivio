@@ -13,7 +13,7 @@ Demivio adalah aplikasi simulasi perhitungan "Reverse Calculator" untuk PPN (Paj
   - Mengatur rentang (range) harga dan diskon dari transaksi acuan.
   - Menentukan range kuantitas minimum dan maksimum.
   - Fitur **Lock**: Mengunci salah satu parameter (Harga, Qty, atau Diskon) agar tidak berubah selama simulasi.
-- **Reactive Defaults**: Secara otomatis menyarankan rentang pencarian (+/- 5%) saat data acuan diubah.
+- **Reactive Defaults**: Secara otomatis menyarankan rentang pencarian (+/- 100%) saat data acuan diubah.
 - **Copy to Clipboard**: Menyalin hasil perhitungan (Harga, Diskon, DPP Nilai Lain) dengan satu klik dalam format yang siap digunakan.
 - **Ranking Hasil**: Menampilkan hasil terbaik berdasarkan skor kedekatan dengan target dan kewajaran harga.
 

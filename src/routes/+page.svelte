@@ -285,7 +285,7 @@
     <p class="subtitle">
       Bayangkan kamu punya punya nilai PPN yang tidak kamu ketahui nilai harga,
       qty, atau potongannya. <br />Maka disini kamu bisa menemukan berbagai
-      kombinasi untuk nilai PPN itu.
+      kombinasi untuk nilai PPN itu menggunakan transaksi lain sebagai acuan.
     </p>
   </div>
 
@@ -294,7 +294,7 @@
     <div class="sidebar">
       <div class="card">
         <h2 class="card-title">1. Transaksi Acuan</h2>
-        <div class="form-row">
+        <div>
           <div class="form-group">
             <label for="ref-price">Harga Satuan (Rp)</label>
             <NumberInput
@@ -355,7 +355,7 @@
         </div>
 
         {#if showParameters}
-          <div class="form-row">
+          <div class="form-col-2">
             <div class="form-group">
               <label for="price-min">Harga Min (Rp)</label>
               <NumberInput id="price-min" bind:value={priceMin} min={0} />
@@ -365,7 +365,7 @@
               <NumberInput id="price-max" bind:value={priceMax} min={0} />
             </div>
           </div>
-          <div class="form-row">
+          <div class="form-col-2">
             <div class="form-group">
               <label for="discount-min">Potongan Min (Rp)</label>
               <NumberInput id="discount-min" bind:value={discountMin} min={0} />
@@ -375,7 +375,7 @@
               <NumberInput id="discount-max" bind:value={discountMax} min={0} />
             </div>
           </div>
-          <div class="form-row">
+          <div class="form-col-2">
             <div class="form-group">
               <label for="qty-min">Qty Min</label>
               <NumberInput id="qty-min" bind:value={qtyMin} min={1} />
