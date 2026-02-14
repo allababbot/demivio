@@ -5,7 +5,7 @@ import type { SerializableSimulationConfig, SerializableSimulationResult } from 
 
 const DB_NAME = 'DemivioCache';
 const STORE_NAME = 'simulations';
-const DB_VERSION = 2; // Bumped to invalidate old results without humanScore
+const DB_VERSION = 3; // Bumped to force cache clear due to schema change (score -> humanScore)
 
 export interface CachedSimulation {
   id: string; // Hash of config
@@ -47,9 +47,14 @@ function openDB(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      
+      // Clear old store if it exists (schema change or version bump)
+      if (db.objectStoreNames.contains(STORE_NAME)) {
+        db.deleteObjectStore(STORE_NAME);
       }
+      
+      // Create new store
+      db.createObjectStore(STORE_NAME, { keyPath: 'id' });
     };
   });
 }
