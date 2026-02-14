@@ -33,6 +33,12 @@ export interface SerializableSimulationConfig {
   topNResults: number;
 }
 
+export interface SerializableHumanScore {
+  accuracy: number;
+  label: string;
+  color: string;
+}
+
 /**
  * Serializable result metadata
  */
@@ -52,6 +58,7 @@ export interface SerializableSimulationResult {
   calculatedPpn: number;
   ppnDifference: number;
   score: number;
+  humanScore: SerializableHumanScore;
   metadata: SerializableResultMetadata;
 }
 

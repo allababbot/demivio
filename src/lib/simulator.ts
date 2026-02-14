@@ -13,6 +13,50 @@ function createTransactionKey(unitPrice: Decimal, quantity: Decimal, discount: D
 }
 
 /**
+ * Calculate a human-readable score from simulation results
+ */
+function calculateHumanScore(
+  result: { ppnDifference: Decimal; metadata: ResultMetadata }
+): import('./types').HumanScore {
+  let accuracy = 100;
+  
+  // 1. PPN Accuracy (Major weight)
+  // If PPN difference is greater than 0, deduct significantly
+  const ppnDiffPercent = result.metadata.ppnDifferencePercent.toNumber();
+  accuracy -= ppnDiffPercent * 50; // 2% diff = 0 accuracy for PPN
+
+  // 2. Similarity to Reference (Minor weight)
+  // Penalize for being far from original unit price/discount
+  const priceDiff = result.metadata.unitPriceDifference.abs();
+  // Simple heuristic: 1% price diff = 1% accuracy deduction
+  const priceDiffPercent = result.metadata.unitPriceDifference.abs().div(100).toNumber(); // This is a bit arbitrary, let's refine
+  
+  // Actually let's just use a simpler check for being "within 10% range"
+  accuracy -= Math.min(10, result.metadata.unitPriceDifference.abs().toNumber() / 500); 
+
+  accuracy = Math.max(0, Math.min(100, accuracy));
+
+  let label = "Mendekati";
+  let color = "#ef4444"; // red-500
+
+  if (accuracy >= 98) {
+    label = "Sempurna";
+    color = "#10b981"; // green-500
+  } else if (accuracy >= 90) {
+    label = "Sangat Mirip";
+    color = "#3b82f6"; // blue-500
+  } else if (accuracy >= 80) {
+    label = "Akurat";
+    color = "#f59e0b"; // amber-500
+  } else if (accuracy >= 60) {
+    label = "Cukup";
+    color = "#f97316"; // orange-500
+  }
+
+  return { accuracy: Math.round(accuracy), label, color };
+}
+
+/**
  * Create a simulation result with calculated metrics
  */
 function createResult(
@@ -40,12 +84,17 @@ function createResult(
     dppNilaiLain: transaction.unitPrice.mul(transaction.quantity).sub(transaction.discount).mul(11).div(12)
   };
 
-  return {
+  const res = {
     transaction,
     calculatedPpn,
     ppnDifference,
     score,
     metadata
+  };
+
+  return {
+    ...res,
+    humanScore: calculateHumanScore(res)
   };
 }
 

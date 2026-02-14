@@ -3,6 +3,12 @@ import Decimal from 'decimal.js';
 // Configure Decimal.js for financial precision
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
+export interface HumanScore {
+  accuracy: number;
+  label: string;
+  color: string;
+}
+
 /**
  * Represents a single transaction
  */
@@ -52,6 +58,7 @@ export interface SimulationResult {
   calculatedPpn: Decimal;
   ppnDifference: Decimal;
   score: Decimal;
+  humanScore: HumanScore;
   metadata: ResultMetadata;
 }
 

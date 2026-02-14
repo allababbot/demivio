@@ -57,6 +57,11 @@ function serializeResult(result: SimulationResult): SerializableSimulationResult
     calculatedPpn: result.calculatedPpn.toNumber(),
     ppnDifference: result.ppnDifference.toNumber(),
     score: result.score.toNumber(),
+    humanScore: {
+      accuracy: result.humanScore.accuracy,
+      label: result.humanScore.label,
+      color: result.humanScore.color
+    },
     metadata: {
       ppnDifferencePercent: result.metadata.ppnDifferencePercent.toNumber(),
       unitPriceDifference: result.metadata.unitPriceDifference.toNumber(),

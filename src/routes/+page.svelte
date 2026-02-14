@@ -435,7 +435,7 @@
                   <th>DPP Nilai Lain</th>
                   <th>PPN</th>
                   <th>Selisih</th>
-                  <th>Score</th>
+                  <th style="text-align: center;">Kualitas</th>
                 </tr>
               </thead>
               <tbody>
@@ -500,7 +500,19 @@
                     </td>
                     <td>{formatRupiah(result.calculatedPpn)}</td>
                     <td>{formatRupiah(result.ppnDifference)}</td>
-                    <td>{formatNumber(result.score)}</td>
+                    <td style="text-align: center;">
+                      <div
+                        class="accuracy-badge"
+                        style="background: {result.humanScore.color}"
+                      >
+                        <span class="accuracy-pct"
+                          >{result.humanScore.accuracy}%</span
+                        >
+                        <span class="accuracy-label"
+                          >{result.humanScore.label}</span
+                        >
+                      </div>
+                    </td>
                   </tr>
                 {/each}
               </tbody>
@@ -578,5 +590,30 @@
     background: var(--success);
     color: white;
     border-color: var(--success);
+  }
+
+  .accuracy-badge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: white;
+    min-width: 80px;
+    line-height: 1.2;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .accuracy-pct {
+    font-weight: bold;
+    font-size: 0.875rem;
+  }
+
+  .accuracy-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    opacity: 0.9;
   }
 </style>
