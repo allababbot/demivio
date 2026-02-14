@@ -77,6 +77,9 @@ export type WorkerResponse = {
   results: SerializableSimulationResult[];
   elapsed: number;
 } | {
+  type: 'partial_result';
+  results: SerializableSimulationResult[];
+} | {
   type: 'error';
   message: string;
 };

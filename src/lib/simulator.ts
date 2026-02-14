@@ -196,7 +196,8 @@ export function estimateCombinations(config: SimulationConfig): number {
  */
 export function runSimulation(
   config: SimulationConfig,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  onResult?: (result: SimulationResult) => void
 ): SimulationResult[] {
   const results: SimulationResult[] = [];
   const seen = new Set<string>(); // Option A: O(1) deduplication
@@ -259,6 +260,7 @@ export function runSimulation(
 
       if (result.ppnDifference.lte(config.tolerance)) {
         results.push(result);
+        if (onResult) onResult(result);
         if (result.ppnDifference.isZero()) perfectCount++;
       }
     }
@@ -291,6 +293,7 @@ export function runSimulation(
 
       if (result.ppnDifference.lte(config.tolerance)) {
         results.push(result);
+        if (onResult) onResult(result);
         if (result.ppnDifference.isZero()) perfectCount++;
       }
     }
@@ -323,6 +326,7 @@ export function runSimulation(
 
       if (result.ppnDifference.lte(config.tolerance)) {
         results.push(result);
+        if (onResult) onResult(result);
         if (result.ppnDifference.isZero()) perfectCount++;
       }
     }

@@ -88,6 +88,8 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   if (request.type === 'start') {
     isCancelled = false;
     const startTime = performance.now();
+    let streamedResults: SerializableSimulationResult[] = [];
+    const BATCH_SIZE = 50;
     
     try {
       // Deserialize config
@@ -103,28 +105,47 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       // Get estimate for progress reporting
       const estimate = estimateCombinations(config);
 
-      // Run simulation with progress callback
-      const results = runSimulation(config, (progress) => {
-        if (isCancelled) {
-          throw new Error('Cancelled');
+      // Run simulation with progress and result callbacks
+      const results = runSimulation(
+        config, 
+        (progress) => {
+          if (isCancelled) {
+            throw new Error('Cancelled');
+          }
+          postResponse({ 
+            type: 'progress', 
+            progress,
+            estimate
+          });
+        },
+        (result) => {
+          streamedResults.push(serializeResult(result));
+          if (streamedResults.length >= BATCH_SIZE) {
+            postResponse({
+              type: 'partial_result',
+              results: streamedResults
+            });
+            streamedResults = [];
+          }
         }
-        postResponse({ 
-          type: 'progress', 
-          progress,
-          estimate
-        });
-      });
+      );
 
       if (isCancelled) {
         return;
       }
 
-      // Sort by ppn difference (closest to target first)
-      results.sort((a, b) => 
-        a.ppnDifference.abs().minus(b.ppnDifference.abs()).toNumber()
-      );
+      // Send remaining results
+      if (streamedResults.length > 0) {
+        postResponse({
+          type: 'partial_result',
+          results: streamedResults
+        });
+      }
 
-      // Serialize and send results
+      // Sort results by score (closest/best first) for the final response
+      results.sort((a, b) => a.score.cmp(b.score));
+
+      // Serialize and send final results summary
       const elapsed = performance.now() - startTime;
       postResponse({
         type: 'result',

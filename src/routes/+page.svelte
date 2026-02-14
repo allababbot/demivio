@@ -11,6 +11,7 @@
   import NumberInput from "$lib/components/NumberInput.svelte";
   import { onMount, onDestroy } from "svelte";
   import { browser } from "$app/environment";
+  import { saveToCache, getFromCache } from "$lib/db";
 
   // Simulate form
   let refPrice = 50000;
@@ -66,8 +67,9 @@
   let simElapsed = 0;
   let showParameters = false;
 
-  // Web Worker
-  let worker: Worker | null = null;
+  // Web Workers
+  let workers: Worker[] = [];
+  const numWorkers = (browser && navigator.hardwareConcurrency) || 4;
 
   // Pagination
   let currentPage = 1;
@@ -84,66 +86,42 @@
     }
   }
 
-  // Initialize worker on mount
+  // Initialize workers on mount
   onMount(() => {
     if (browser) {
-      worker = new Worker(
-        new URL("$lib/simulator.worker.ts", import.meta.url),
-        { type: "module" },
-      );
-
-      worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-        const response = event.data;
-
-        if (response.type === "progress") {
-          simProgress = response.progress;
-          simEstimate = response.estimate;
-        } else if (response.type === "result") {
-          simResults = response.results;
-          simElapsed = response.elapsed;
-          simRunning = false;
-          simProgress = 1;
-
-          if (simResults.length === 0) {
-            simError =
-              "Tidak ditemukan hasil dalam toleransi yang ditentukan. Coba perbesar toleransi atau range.";
-          }
-        } else if (response.type === "error") {
-          simError = response.message;
-          simRunning = false;
-        }
-      };
-
-      worker.onerror = (error) => {
-        simError = `Worker error: ${error.message}`;
-        simRunning = false;
-      };
+      for (let i = 0; i < numWorkers; i++) {
+        const worker = new Worker(
+          new URL("$lib/simulator.worker.ts", import.meta.url),
+          { type: "module" },
+        );
+        workers = [...workers, worker];
+      }
     }
   });
 
-  // Clean up worker on destroy
+  // Clean up workers on destroy
   onDestroy(() => {
-    if (worker) {
-      worker.terminate();
-      worker = null;
-    }
+    workers.forEach((w) => w.terminate());
+    workers = [];
   });
 
-  function handleSimulate() {
-    if (!worker) {
+  async function handleSimulate() {
+    if (workers.length === 0) {
       simError = "Worker tidak tersedia";
       return;
     }
 
     simError = null;
     simResults = [];
-    currentPage = 1; // Reset pagination
+    currentPage = 1;
     simRunning = true;
     simProgress = 0;
     simElapsed = 0;
 
-    // Build serializable config
-    const config: SerializableSimulationConfig = {
+    const startTime = performance.now();
+
+    // Build base config
+    const baseConfig: SerializableSimulationConfig = {
       referenceTransaction: {
         unitPrice: refPrice ?? 0,
         quantity: refQuantity ?? 0,
@@ -158,27 +136,107 @@
         ? (refDiscount ?? 0)
         : (discountMax ?? 1000000),
       quantityMin: isQtyLocked ? (refQuantity ?? 1) : (qtyMin ?? 1),
-      quantityMax: isQtyLocked ? (refQuantity ?? 100) : (qtyMax ?? 100),
-      quantityStep: qtyStep ?? 1,
-      priceStep: priceStep ?? 100,
-      discountStep: discountStep ?? 100,
+      quantityMax: isQtyLocked ? (refQuantity ?? 1) : (qtyMax ?? 1000),
+      quantityStep: qtyStep,
+      priceStep: priceStep,
+      discountStep: discountStep,
       alpha: 1,
-      beta: 1,
-      topNResults: topN ?? 10,
+      beta: 0.1,
+      topNResults: topN,
     };
 
-    // Send to worker
-    const request: WorkerRequest = { type: "start", config };
-    worker.postMessage(request);
+    // 5. Caching & Memoization Check
+    const cached = await getFromCache(baseConfig);
+    if (cached) {
+      simResults = cached;
+      simElapsed = performance.now() - startTime;
+      simRunning = false;
+      simProgress = 1;
+      return;
+    }
+
+    // Prepare for parallel execution
+    let activeWorkers = workers.length;
+    let progressMap = new Map<number, number>();
+    let workerResults: SerializableSimulationResult[][] = Array(
+      workers.length,
+    ).fill([]);
+
+    // Logic to split the Qty range among workers
+    const fullQtyRange = baseConfig.quantityMax - baseConfig.quantityMin;
+    const sliceSize = Math.max(1, Math.floor(fullQtyRange / workers.length));
+
+    workers.forEach((worker, i) => {
+      const startQty = baseConfig.quantityMin + i * sliceSize;
+      const endQty =
+        i === workers.length - 1
+          ? baseConfig.quantityMax
+          : startQty + sliceSize - 1;
+
+      const workerConfig = {
+        ...baseConfig,
+        quantityMin: startQty,
+        quantityMax: Math.max(startQty, endQty),
+      };
+
+      worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+        const response = event.data;
+
+        if (response.type === "progress") {
+          progressMap.set(i, response.progress);
+          const totalProgress =
+            Array.from(progressMap.values()).reduce((a, b) => a + b, 0) /
+            workers.length;
+          simProgress = totalProgress;
+          simEstimate = response.estimate * workers.length;
+        } else if (response.type === "partial_result") {
+          // 3. Incremental Result Streaming
+          simResults = [...simResults, ...response.results];
+        } else if (response.type === "result") {
+          workerResults[i] = response.results;
+          activeWorkers--;
+
+          if (activeWorkers === 0) {
+            // All workers finished
+            const allResults = workerResults.flat();
+            const uniqueResults = Array.from(
+              new Map(
+                allResults.map((r) => [
+                  `${r.transaction.unitPrice}|${r.transaction.quantity}|${r.transaction.discount}`,
+                  r,
+                ]),
+              ).values(),
+            );
+            uniqueResults.sort((a, b) => a.score - b.score);
+            simResults = uniqueResults.slice(0, topN);
+
+            simElapsed = performance.now() - startTime;
+            simRunning = false;
+            simProgress = 1;
+
+            if (simResults.length === 0) {
+              simError =
+                "Tidak ditemukan hasil dalam toleransi yang ditentukan.";
+            } else {
+              saveToCache(baseConfig, simResults).catch(console.error);
+            }
+          }
+        } else if (response.type === "error") {
+          simError = response.message;
+          simRunning = false;
+        }
+      };
+
+      worker.postMessage({ type: "start", config: workerConfig });
+    });
   }
 
   function handleCancel() {
-    if (worker) {
-      const request: WorkerRequest = { type: "cancel" };
-      worker.postMessage(request);
-      simRunning = false;
-      simProgress = 0;
-    }
+    workers.forEach((w) => {
+      w.postMessage({ type: "cancel" });
+    });
+    simRunning = false;
+    simProgress = 0;
   }
 
   // Format elapsed time
