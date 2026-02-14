@@ -13,33 +13,40 @@
   import { browser } from "$app/environment";
 
   // Simulate form
-  let refPrice = 50000;
-  let refQuantity = 20;
-  let refDiscount = 15000;
-  let targetPpn = 120000;
-  let tolerance = 1;
-  let priceMin = Math.floor(refPrice * 0.95);
-  let priceMax = Math.ceil(refPrice * 1.05);
-  let discountMin = Math.floor(refDiscount * 0.95);
-  let discountMax = Math.ceil(refDiscount * 1.05);
+  let refPrice = 0;
+  let refQuantity = 0;
+  let refDiscount = 0;
+  let targetPpn = 0;
+  let tolerance = 0;
+  let priceMin = 0;
+  let priceMax = 0;
+  let discountMin = 0;
+  let discountMax = 0;
 
-  let prevRefPrice = refPrice;
-  let prevRefDiscount = refDiscount;
+  let prevRefPrice = 0;
+  let prevRefQuantity = 0;
+  let prevRefDiscount = 0;
 
   // Reactively update defaults when reference values change
   $: if (refPrice !== prevRefPrice) {
-    priceMin = Math.floor(refPrice * 0.95);
-    priceMax = Math.ceil(refPrice * 1.05);
+    priceMin = 0;
+    priceMax = refPrice * 2;
     prevRefPrice = refPrice;
   }
 
+  $: if (refQuantity !== prevRefQuantity) {
+    qtyMin = 1;
+    qtyMax = refQuantity * 2;
+    prevRefQuantity = refQuantity;
+  }
+
   $: if (refDiscount !== prevRefDiscount) {
-    discountMin = Math.floor(refDiscount * 0.95);
-    discountMax = Math.ceil(refDiscount * 1.05);
+    discountMin = 0;
+    discountMax = refDiscount * 2;
     prevRefDiscount = refDiscount;
   }
   let qtyMin = 1;
-  let qtyMax = 100;
+  let qtyMax = 0;
   let qtyStep = 1;
   let priceStep = 1;
   let discountStep = 1;
