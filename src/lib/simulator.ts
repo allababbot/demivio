@@ -63,6 +63,32 @@ function calculateRequiredUnitPrice(
 }
 
 /**
+ * Calculate exact discount needed for target PPN
+ * Formula: discount = (unitPrice * quantity) - (targetPpn / 0.11)
+ */
+function calculateRequiredDiscount(
+  targetPpn: Decimal,
+  unitPrice: Decimal,
+  quantity: Decimal
+): Decimal {
+  const requiredDPP = targetPpn.div(PPN_RATE);
+  return unitPrice.mul(quantity).sub(requiredDPP);
+}
+
+/**
+ * Calculate exact quantity needed for target PPN
+ * Formula: quantity = (targetPpn / 0.11 + discount) / unitPrice
+ */
+function calculateRequiredQuantity(
+  targetPpn: Decimal,
+  unitPrice: Decimal,
+  discount: Decimal
+): Decimal {
+  const surplus = targetPpn.div(PPN_RATE).add(discount);
+  return surplus.div(unitPrice);
+}
+
+/**
  * Round to nearest step value
  */
 function roundToStep(value: Decimal, step: Decimal): Decimal {
@@ -191,8 +217,8 @@ export function runSimulation(
   const priceLocked = priceMin.eq(priceMax);
   
   // Use smart order only for large searches where multiple dimensions vary
-  // Skip smart order if any dimension is locked (simpler iteration is faster)
-  const shouldUseSmartOrder = totalEstimate > 10000 && !qtyLocked && !discountLocked;
+  // For locked parameters, smart order is still useful if the remaining space is large (> 5000)
+  const shouldUseSmartOrder = totalEstimate > 5000;
 
   // Option D: Use priority-based iteration for large searches
   const iterator = shouldUseSmartOrder
@@ -208,119 +234,160 @@ export function runSimulation(
     : null;
 
   // Standard iteration for smaller searches, priority for larger
-  const processQtyDiscount = (quantity: Decimal, discount: Decimal): boolean => {
-    // Option D: Binary search optimization - skip if no valid price in range
-    const optimalRange = findOptimalQtyRange(
-      config.targetPpn,
-      discount,
-      priceMin,
-      priceMax,
-      config.tolerance,
-      config.quantityMin,
-      config.quantityMax
-    );
-    
-    // If this qty is far from the optimal range, skip entirely
-    if (optimalRange && (quantity.lt(optimalRange[0].sub(5)) || quantity.gt(optimalRange[1].add(5)))) {
-      return false; // Skip this combination
+  const processQtyUnitPrice = (quantity: Decimal, unitPrice: Decimal): void => {
+    const exactDiscount = calculateRequiredDiscount(config.targetPpn, unitPrice, quantity);
+    const roundedDiscount = roundToStep(exactDiscount, config.discountStep);
+
+    const discountsToTry = [exactDiscount];
+    if (!roundedDiscount.eq(exactDiscount)) {
+      discountsToTry.push(roundedDiscount);
+      discountsToTry.push(roundedDiscount.add(config.discountStep));
+      discountsToTry.push(roundedDiscount.sub(config.discountStep));
     }
 
-    // Calculate exact unitPrice for target PPN
-    const exactUnitPrice = calculateRequiredUnitPrice(
-      config.targetPpn,
-      quantity,
-      discount
-    );
+    for (const discount of discountsToTry) {
+      if (discount.lt(discountMin) || discount.gt(discountMax)) continue;
 
-    // Round to priceStep for practical values
+      const key = createTransactionKey(unitPrice, quantity, discount);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const transaction: Transaction = { unitPrice, quantity, discount };
+      if (validateTransaction(transaction) !== null) continue;
+
+      const result = createResult(transaction, config.targetPpn, config.referenceTransaction, config.alpha, config.beta);
+
+      if (result.ppnDifference.lte(config.tolerance)) {
+        results.push(result);
+        if (result.ppnDifference.isZero()) perfectCount++;
+      }
+    }
+  };
+
+  const processPriceDiscount = (unitPrice: Decimal, discount: Decimal): void => {
+    const exactQty = calculateRequiredQuantity(config.targetPpn, unitPrice, discount);
+    const roundedQty = roundToStep(exactQty, config.quantityStep);
+
+    const qtysToTry = [exactQty];
+    if (!roundedQty.eq(exactQty)) {
+      qtysToTry.push(roundedQty);
+      qtysToTry.push(roundedQty.add(config.quantityStep));
+      qtysToTry.push(roundedQty.sub(config.quantityStep));
+    }
+
+    for (const quantity of qtysToTry) {
+      if (quantity.lt(config.quantityMin) || quantity.gt(config.quantityMax) || quantity.lte(0)) {
+        continue;
+      }
+
+      const key = createTransactionKey(unitPrice, quantity, discount);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const transaction: Transaction = { unitPrice, quantity, discount };
+      if (validateTransaction(transaction) !== null) continue;
+
+      const result = createResult(transaction, config.targetPpn, config.referenceTransaction, config.alpha, config.beta);
+
+      if (result.ppnDifference.lte(config.tolerance)) {
+        results.push(result);
+        if (result.ppnDifference.isZero()) perfectCount++;
+      }
+    }
+  };
+
+  const processQtyDiscount = (quantity: Decimal, discount: Decimal): void => {
+    const exactUnitPrice = calculateRequiredUnitPrice(config.targetPpn, quantity, discount);
     const roundedUnitPrice = roundToStep(exactUnitPrice, config.priceStep);
 
-    // Process both exact and rounded values
     const pricesToTry = [exactUnitPrice];
     if (!roundedUnitPrice.eq(exactUnitPrice)) {
       pricesToTry.push(roundedUnitPrice);
-      // Also try adjacent rounded values
       pricesToTry.push(roundedUnitPrice.add(config.priceStep));
       pricesToTry.push(roundedUnitPrice.sub(config.priceStep));
     }
 
     for (const unitPrice of pricesToTry) {
-      // Check if unitPrice is within variance range
-      if (unitPrice.lt(priceMin) || unitPrice.gt(priceMax)) {
+      if (unitPrice.lt(priceMin) || unitPrice.gt(priceMax) || unitPrice.lte(0)) {
         continue;
       }
 
-      // Skip negative or zero prices
-      if (unitPrice.lte(0)) {
-        continue;
-      }
-
-      // Option A: Fast duplicate check using Set
       const key = createTransactionKey(unitPrice, quantity, discount);
-      if (seen.has(key)) {
-        continue;
-      }
+      if (seen.has(key)) continue;
       seen.add(key);
 
-      const transaction: Transaction = {
-        unitPrice,
-        quantity,
-        discount
-      };
+      const transaction: Transaction = { unitPrice, quantity, discount };
+      if (validateTransaction(transaction) !== null) continue;
 
-      // Validate transaction
-      if (validateTransaction(transaction) !== null) {
-        continue;
-      }
+      const result = createResult(transaction, config.targetPpn, config.referenceTransaction, config.alpha, config.beta);
 
-      const result = createResult(
-        transaction,
-        config.targetPpn,
-        config.referenceTransaction,
-        config.alpha,
-        config.beta
-      );
-
-      // Filter by tolerance
       if (result.ppnDifference.lte(config.tolerance)) {
         results.push(result);
-        
-        // Track perfect matches for early termination
-        if (result.ppnDifference.isZero()) {
-          perfectCount++;
-        }
+        if (result.ppnDifference.isZero()) perfectCount++;
       }
     }
-
-    return true;
   };
 
-  if (iterator) {
-    // Option D: Priority-based iteration
+  if (priceLocked && discountLocked) {
+    // Only Qty is variable
+    processPriceDiscount(priceMin, discountMin);
+  } else if (priceLocked) {
+    // Already optimized in last step, keep it
+    for (
+      let quantity = config.quantityMin;
+      quantity.lte(config.quantityMax);
+      quantity = quantity.add(config.quantityStep)
+    ) {
+      if (perfectCount >= config.topNResults) break;
+      processQtyUnitPrice(quantity, priceMin);
+      count++;
+    }
+  } else if (discountLocked) {
+    // Loop over Qty (usually fewer steps than Price)
+    for (
+      let quantity = config.quantityMin;
+      quantity.lte(config.quantityMax);
+      quantity = quantity.add(config.quantityStep)
+    ) {
+      if (perfectCount >= config.topNResults) break;
+      processQtyDiscount(quantity, discountMin);
+      count++;
+    }
+  } else if (qtyLocked) {
+    // Loop over the variable with fewer steps (Usually Discount < Price)
+    // But use iterator if available for smart termination
+    if (iterator) {
+      for (const [quantity, discount] of iterator) {
+        processQtyDiscount(quantity, discount);
+        count++;
+        if (perfectCount >= config.topNResults) break;
+      }
+    } else {
+      for (let d = discountMin; d.lte(discountMax); d = d.add(config.discountStep)) {
+        if (perfectCount >= config.topNResults) break;
+        processQtyDiscount(config.quantityMin, d);
+        count++;
+      }
+    }
+  } else if (iterator) {
+    // Standard Option D: Priority-based iteration
     for (const [quantity, discount] of iterator) {
       processQtyDiscount(quantity, discount);
       count++;
-
-      // Option C: Early termination
-      if (perfectCount >= config.topNResults) {
-        break;
-      }
+      if (perfectCount >= config.topNResults) break;
 
       if (onProgress && count % 1000 === 0) {
         onProgress(Math.min(count / totalEstimate, 0.99));
       }
     }
   } else {
-    // Standard iteration for small searches
+    // Standard fallback iteration
     for (
       let quantity = config.quantityMin;
       quantity.lte(config.quantityMax);
       quantity = quantity.add(config.quantityStep)
     ) {
-      // Option C: Early termination
-      if (perfectCount >= config.topNResults) {
-        break;
-      }
+      if (perfectCount >= config.topNResults) break;
 
       for (
         let discount = discountMin;

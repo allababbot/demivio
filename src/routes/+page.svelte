@@ -13,19 +13,19 @@
   import { browser } from "$app/environment";
 
   // Simulate form
-  let refPrice = 0;
-  let refQuantity = 0;
-  let refDiscount = 0;
-  let targetPpn = 0;
-  let tolerance = 0;
+  let refPrice = 50000;
+  let refQuantity = 20;
+  let refDiscount = 15000;
+  let targetPpn = 120000;
+  let tolerance = 1;
   let priceMin = 0;
-  let priceMax = 0;
+  let priceMax = refPrice * 2;
   let discountMin = 0;
-  let discountMax = 0;
+  let discountMax = refDiscount * 2;
 
-  let prevRefPrice = 0;
-  let prevRefQuantity = 0;
-  let prevRefDiscount = 0;
+  let prevRefPrice = refPrice;
+  let prevRefQuantity = refQuantity;
+  let prevRefDiscount = refDiscount;
 
   // Reactively update defaults when reference values change
   $: if (refPrice !== prevRefPrice) {
@@ -46,7 +46,7 @@
     prevRefDiscount = refDiscount;
   }
   let qtyMin = 1;
-  let qtyMax = 0;
+  let qtyMax = refQuantity * 2;
   let qtyStep = 1;
   let priceStep = 1;
   let discountStep = 1;
