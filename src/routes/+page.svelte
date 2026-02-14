@@ -179,6 +179,12 @@
         quantityMax: Math.max(startQty, endQty),
       };
 
+      worker.onerror = (error) => {
+        console.error("Worker error:", error);
+        simError = "Worker Error: Terjadi kesalahan di background thread.";
+        simRunning = false;
+      };
+
       worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
         const response = event.data;
 
@@ -503,13 +509,14 @@
                     <td style="text-align: center;">
                       <div
                         class="accuracy-badge"
-                        style="background: {result.humanScore.color}"
+                        style="background: {result.humanScore?.color ||
+                          '#9ca3af'}"
                       >
                         <span class="accuracy-pct"
-                          >{result.humanScore.accuracy}%</span
+                          >{result.humanScore?.accuracy ?? 0}%</span
                         >
                         <span class="accuracy-label"
-                          >{result.humanScore.label}</span
+                          >{result.humanScore?.label || "Mendekati"}</span
                         >
                       </div>
                     </td>

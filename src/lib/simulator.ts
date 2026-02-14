@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import type { Transaction, SimulationConfig, SimulationResult, ResultMetadata } from './types';
+import type { Transaction, SimulationConfig, SimulationResult, ResultMetadata, HumanScore } from './types';
 import { calculateTransactionPpn, validateTransaction } from './calculator';
 
 // PPN rate constant: 11/100 = 0.11
@@ -17,7 +17,7 @@ function createTransactionKey(unitPrice: Decimal, quantity: Decimal, discount: D
  */
 function calculateHumanScore(
   result: { ppnDifference: Decimal; metadata: ResultMetadata }
-): import('./types').HumanScore {
+): HumanScore {
   let accuracy = 100;
   
   // 1. PPN Accuracy (Major weight)
@@ -210,7 +210,7 @@ function* generatePriorityOrder(
 
   // Only sort if there are multiple values (skip sorting for locked params)
   if (qtyValues.length > 1) {
-    const qtyCenter = refQty.clamp(qtyMin, qtyMax);
+    const qtyCenter = Decimal.max(qtyMin, Decimal.min(qtyMax, refQty));
     qtyValues.sort((a, b) => a.sub(qtyCenter).abs().cmp(b.sub(qtyCenter).abs()));
   }
   

@@ -5,7 +5,7 @@ import type { SerializableSimulationConfig, SerializableSimulationResult } from 
 
 const DB_NAME = 'DemivioCache';
 const STORE_NAME = 'simulations';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Bumped to invalidate old results without humanScore
 
 export interface CachedSimulation {
   id: string; // Hash of config
