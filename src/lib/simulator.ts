@@ -1,9 +1,7 @@
 import Decimal from 'decimal.js';
 import type { Transaction, SimulationConfig, SimulationResult, ResultMetadata, HumanScore } from './types';
 import { calculateTransactionPpn, validateTransaction } from './calculator';
-
-// PPN rate constant: 11/100 = 0.11
-const PPN_RATE = new Decimal('0.11');
+import { PPN_EFFECTIVE_RATE } from './constants';
 
 /**
  * Create a composite key for transaction deduplication (Option A)
@@ -13,47 +11,86 @@ function createTransactionKey(unitPrice: Decimal, quantity: Decimal, discount: D
 }
 
 /**
- * Calculate a human-readable score from simulation results
+ * Calculate a human-readable quality score from simulation results.
+ *
+ * Weights:
+ *   - PPN accuracy    : 60%  (primary objective)
+ *   - Price similarity : 15%  (how close to reference price)
+ *   - Qty similarity   : 10%  (how close to reference qty)
+ *   - Discount sim.    : 15%  (how close to reference discount)
+ *
+ * Each factor uses a diminishing-returns curve: score = 1 / (1 + k * |diff%|)
+ * This gives granular scores (e.g. 93.4%) instead of arbitrary step functions.
  */
 function calculateHumanScore(
   result: { ppnDifference: Decimal; metadata: ResultMetadata }
 ): HumanScore {
-  let accuracy = 100;
-  
-  // 1. PPN Accuracy (Major weight)
-  // If PPN difference is greater than 0, deduct significantly
-  const ppnDiffPercent = result.metadata.ppnDifferencePercent.toNumber();
-  accuracy -= ppnDiffPercent * 50; // 2% diff = 0 accuracy for PPN
+  const meta = result.metadata;
 
-  // 2. Similarity to Reference (Minor weight)
-  // Penalize for being far from original unit price/discount
-  const priceDiff = result.metadata.unitPriceDifference.abs();
-  // Simple heuristic: 1% price diff = 1% accuracy deduction
-  const priceDiffPercent = result.metadata.unitPriceDifference.abs().div(100).toNumber(); // This is a bit arbitrary, let's refine
-  
-  // Actually let's just use a simpler check for being "within 10% range"
-  accuracy -= Math.min(10, result.metadata.unitPriceDifference.abs().toNumber() / 500); 
+  // --- Factor 1: PPN Accuracy (60% weight) ---
+  // ppnDifferencePercent is already 0..100 range
+  const ppnDiffPct = meta.ppnDifferencePercent.toNumber();
+  // k=5: 1% diff → 95.2 score, 2% → 90.9, 5% → 80, 10% → 66.7
+  const ppnScore = 100 / (1 + 5 * ppnDiffPct / 100);
 
-  accuracy = Math.max(0, Math.min(100, accuracy));
+  // --- Factor 2: Price Similarity (15% weight) ---
+  // unitPriceDifference is absolute Rp. Normalize by reference via metadata.
+  // Use a generous scale: 10% price change ≈ 50% factor score
+  const priceAbsDiff = meta.unitPriceDifference.abs().toNumber();
+  const priceRef = Math.max(1, priceAbsDiff + 1); // avoid div-by-zero edge
+  // We need reference price — reconstruct from diff + result price
+  // Actually unitPriceDifference = result.unitPrice - ref.unitPrice
+  // So ref = result - diff. But we only have abs diff here.
+  // Use a fixed scale factor based on typical price magnitudes
+  const priceScore = 100 / (1 + priceAbsDiff / 5000);
 
-  let label = "Mendekati";
-  let color = "#ef4444"; // red-500
+  // --- Factor 3: Quantity Similarity (10% weight) ---
+  const qtyAbsDiff = meta.quantityDifference.abs().toNumber();
+  // k scale: 1 qty diff ≈ 83 score, 5 diff ≈ 50, 10 diff ≈ 33
+  const qtyScore = 100 / (1 + qtyAbsDiff / 3);
 
-  if (accuracy >= 98) {
+  // --- Factor 4: Discount Similarity (15% weight) ---
+  const discAbsDiff = meta.discountDifference.abs().toNumber();
+  const discScore = 100 / (1 + discAbsDiff / 5000);
+
+  // --- Weighted composite ---
+  const composite =
+    ppnScore * 0.60 +
+    priceScore * 0.15 +
+    qtyScore * 0.10 +
+    discScore * 0.15;
+
+  // Clamp to [0, 100] and keep one decimal for granularity
+  const accuracy = Math.max(0, Math.min(100, Math.round(composite * 10) / 10));
+
+  // --- Label & Color ---
+  let label: string;
+  let color: string;
+
+  if (accuracy >= 99) {
     label = "Sempurna";
-    color = "#10b981"; // green-500
+    color = "#059669"; // emerald-600
+  } else if (accuracy >= 95) {
+    label = "Hampir Sama";
+    color = "#10b981"; // emerald-500
   } else if (accuracy >= 90) {
     label = "Sangat Mirip";
     color = "#3b82f6"; // blue-500
   } else if (accuracy >= 80) {
-    label = "Akurat";
-    color = "#f59e0b"; // amber-500
-  } else if (accuracy >= 60) {
+    label = "Mirip";
+    color = "#6366f1"; // indigo-500
+  } else if (accuracy >= 70) {
     label = "Cukup";
+    color = "#f59e0b"; // amber-500
+  } else if (accuracy >= 50) {
+    label = "Kurang";
     color = "#f97316"; // orange-500
+  } else {
+    label = "Jauh";
+    color = "#ef4444"; // red-500
   }
 
-  return { accuracy: Math.round(accuracy), label, color };
+  return { accuracy, label, color };
 }
 
 /**
@@ -107,7 +144,7 @@ function calculateRequiredUnitPrice(
   quantity: Decimal,
   discount: Decimal
 ): Decimal {
-  const requiredDPP = targetPpn.div(PPN_RATE);
+  const requiredDPP = targetPpn.div(PPN_EFFECTIVE_RATE);
   return requiredDPP.add(discount).div(quantity);
 }
 
@@ -120,7 +157,7 @@ function calculateRequiredDiscount(
   unitPrice: Decimal,
   quantity: Decimal
 ): Decimal {
-  const requiredDPP = targetPpn.div(PPN_RATE);
+  const requiredDPP = targetPpn.div(PPN_EFFECTIVE_RATE);
   return unitPrice.mul(quantity).sub(requiredDPP);
 }
 
@@ -133,7 +170,7 @@ function calculateRequiredQuantity(
   unitPrice: Decimal,
   discount: Decimal
 ): Decimal {
-  const surplus = targetPpn.div(PPN_RATE).add(discount);
+  const surplus = targetPpn.div(PPN_EFFECTIVE_RATE).add(discount);
   return surplus.div(unitPrice);
 }
 
@@ -163,12 +200,12 @@ function findOptimalQtyRange(
   
   // Lower bound: unitPrice = priceMax (higher price = lower qty needed)
   // qty_min_for_target = (targetPpn / 0.11 + discount) / priceMax
-  const qtyForMaxPrice = targetPpn.div(PPN_RATE).add(discount).div(priceMax);
+  const qtyForMaxPrice = targetPpn.div(PPN_EFFECTIVE_RATE).add(discount).div(priceMax);
   
   // Upper bound: unitPrice = priceMin (lower price = higher qty needed)  
   // qty_max_for_target = (targetPpn / 0.11 + discount) / priceMin
   const qtyForMinPrice = priceMin.gt(0) 
-    ? targetPpn.div(PPN_RATE).add(discount).div(priceMin)
+    ? targetPpn.div(PPN_EFFECTIVE_RATE).add(discount).div(priceMin)
     : qtyMax;
 
   // Clamp to config range
@@ -246,7 +283,8 @@ export function estimateCombinations(config: SimulationConfig): number {
 export function runSimulation(
   config: SimulationConfig,
   onProgress?: (progress: number) => void,
-  onResult?: (result: SimulationResult) => void
+  onResult?: (result: SimulationResult) => void,
+  shouldCancel?: () => boolean
 ): SimulationResult[] {
   const results: SimulationResult[] = [];
   const seen = new Set<string>(); // Option A: O(1) deduplication
@@ -385,46 +423,43 @@ export function runSimulation(
     // Only Qty is variable
     processPriceDiscount(priceMin, discountMin);
   } else if (priceLocked) {
-    // Already optimized in last step, keep it
     for (
       let quantity = config.quantityMin;
       quantity.lte(config.quantityMax);
       quantity = quantity.add(config.quantityStep)
     ) {
-      if (perfectCount >= config.topNResults) break;
+      if (perfectCount >= config.topNResults || shouldCancel?.()) break;
       processQtyUnitPrice(quantity, priceMin);
       count++;
     }
   } else if (discountLocked) {
-    // Loop over Qty (usually fewer steps than Price)
     for (
       let quantity = config.quantityMin;
       quantity.lte(config.quantityMax);
       quantity = quantity.add(config.quantityStep)
     ) {
-      if (perfectCount >= config.topNResults) break;
+      if (perfectCount >= config.topNResults || shouldCancel?.()) break;
       processQtyDiscount(quantity, discountMin);
       count++;
     }
   } else if (qtyLocked) {
-    // Loop over the variable with fewer steps (Usually Discount < Price)
-    // But use iterator if available for smart termination
     if (iterator) {
       for (const [quantity, discount] of iterator) {
+        if (shouldCancel?.()) break;
         processQtyDiscount(quantity, discount);
         count++;
         if (perfectCount >= config.topNResults) break;
       }
     } else {
       for (let d = discountMin; d.lte(discountMax); d = d.add(config.discountStep)) {
-        if (perfectCount >= config.topNResults) break;
+        if (perfectCount >= config.topNResults || shouldCancel?.()) break;
         processQtyDiscount(config.quantityMin, d);
         count++;
       }
     }
   } else if (iterator) {
-    // Standard Option D: Priority-based iteration
     for (const [quantity, discount] of iterator) {
+      if (shouldCancel?.()) break;
       processQtyDiscount(quantity, discount);
       count++;
       if (perfectCount >= config.topNResults) break;
@@ -434,19 +469,19 @@ export function runSimulation(
       }
     }
   } else {
-    // Standard fallback iteration
     for (
       let quantity = config.quantityMin;
       quantity.lte(config.quantityMax);
       quantity = quantity.add(config.quantityStep)
     ) {
-      if (perfectCount >= config.topNResults) break;
+      if (perfectCount >= config.topNResults || shouldCancel?.()) break;
 
       for (
         let discount = discountMin;
         discount.lte(discountMax);
         discount = discount.add(config.discountStep)
       ) {
+        if (shouldCancel?.()) break;
         processQtyDiscount(quantity, discount);
         count++;
 

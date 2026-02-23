@@ -6,18 +6,21 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "@sveltejs/adapter-static": "latest",
-    "@sveltejs/kit": "latest",
-    "@sveltejs/vite-plugin-svelte": "latest",
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.21.1",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@types/decimal.js": "^7.4.3",
-    "svelte": "latest",
+    "svelte": "^5.48.3",
     "svelte-check": "^4.0.0",
     "tslib": "^2.6.0",
     "typescript": "^5.0.0",
-    "vite": "latest"
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "decimal.js": "^10.4.3"

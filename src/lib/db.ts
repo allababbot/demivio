@@ -15,10 +15,22 @@ export interface CachedSimulation {
 }
 
 /**
- * Generate a simple hash for the config to use as an ID
+ * FNV-1a hash for string input — fast and well-distributed
+ */
+function fnv1aHash(str: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = (hash * 16777619) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+/**
+ * Generate a hash for the config to use as an IndexedDB key
  */
 export function hashConfig(config: SerializableSimulationConfig): string {
-  return JSON.stringify({
+  const raw = JSON.stringify({
     ref: config.referenceTransaction,
     target: config.targetPpn,
     tol: config.tolerance,
@@ -35,6 +47,7 @@ export function hashConfig(config: SerializableSimulationConfig): string {
     b: config.beta,
     n: config.topNResults
   });
+  return fnv1aHash(raw);
 }
 
 /**
@@ -134,5 +147,48 @@ export async function clearOldCache(maxAgeDays = 7): Promise<void> {
     };
   } catch (e) {
     console.error('Failed to clear old cache:', e);
+  }
+}
+
+/**
+ * Get all cached simulations, sorted by timestamp (newest first)
+ */
+export async function getAllCachedSimulations(): Promise<CachedSimulation[]> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => {
+        const entries = (request.result as CachedSimulation[]) || [];
+        entries.sort((a, b) => b.timestamp - a.timestamp);
+        resolve(entries);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (e) {
+    console.error('Failed to get all cached simulations:', e);
+    return [];
+  }
+}
+
+/**
+ * Delete a specific cached simulation by its id
+ */
+export async function deleteCachedSimulation(id: string): Promise<void> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.delete(id);
+
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {
+    console.error('Failed to delete cached simulation:', e);
   }
 }

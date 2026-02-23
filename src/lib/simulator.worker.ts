@@ -16,6 +16,7 @@ import { runSimulation, validateConfig, estimateCombinations } from './simulator
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 let isCancelled = false;
+let currentGenerationId = 0;
 
 /**
  * Convert serializable config to Decimal-based config
@@ -92,6 +93,8 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
 
   if (request.type === 'start') {
     isCancelled = false;
+    currentGenerationId = request.generationId;
+    const genId = currentGenerationId;
     const startTime = performance.now();
     let streamedResults: SerializableSimulationResult[] = [];
     const BATCH_SIZE = 50;
@@ -103,24 +106,22 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       // Validate config
       const error = validateConfig(config);
       if (error) {
-        postResponse({ type: 'error', message: error });
+        postResponse({ type: 'error', message: error, generationId: genId });
         return;
       }
 
       // Get estimate for progress reporting
       const estimate = estimateCombinations(config);
 
-      // Run simulation with progress and result callbacks
+      // Run simulation with progress, result, and cancel callbacks
       const results = runSimulation(
         config, 
         (progress) => {
-          if (isCancelled) {
-            throw new Error('Cancelled');
-          }
           postResponse({ 
             type: 'progress', 
             progress,
-            estimate
+            estimate,
+            generationId: genId
           });
         },
         (result) => {
@@ -128,11 +129,13 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
           if (streamedResults.length >= BATCH_SIZE) {
             postResponse({
               type: 'partial_result',
-              results: streamedResults
+              results: streamedResults,
+              generationId: genId
             });
             streamedResults = [];
           }
-        }
+        },
+        () => isCancelled
       );
 
       if (isCancelled) {
@@ -143,7 +146,8 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       if (streamedResults.length > 0) {
         postResponse({
           type: 'partial_result',
-          results: streamedResults
+          results: streamedResults,
+          generationId: genId
         });
       }
 
@@ -161,13 +165,15 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       postResponse({
         type: 'result',
         results: results.map(serializeResult),
-        elapsed
+        elapsed,
+        generationId: genId
       });
     } catch (e) {
       if (!isCancelled) {
         postResponse({ 
           type: 'error', 
-          message: e instanceof Error ? e.message : 'Unknown error' 
+          message: e instanceof Error ? e.message : 'Unknown error',
+          generationId: genId
         });
       }
     }

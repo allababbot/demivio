@@ -68,6 +68,7 @@ export interface SerializableSimulationResult {
 export type WorkerRequest = {
   type: 'start';
   config: SerializableSimulationConfig;
+  generationId: number;
 } | {
   type: 'cancel';
 };
@@ -79,14 +80,18 @@ export type WorkerResponse = {
   type: 'progress';
   progress: number;
   estimate: number;
+  generationId: number;
 } | {
   type: 'result';
   results: SerializableSimulationResult[];
   elapsed: number;
+  generationId: number;
 } | {
   type: 'partial_result';
   results: SerializableSimulationResult[];
+  generationId: number;
 } | {
   type: 'error';
   message: string;
+  generationId: number;
 };

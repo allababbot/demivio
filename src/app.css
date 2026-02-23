@@ -378,16 +378,86 @@ tr:hover {
     padding: 1rem;
   }
 
-  .form-row {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row,
+  .form-col-2 {
     grid-template-columns: 1fr;
   }
 
   table {
-    font-size: 0.875rem;
+    font-size: 0.8rem;
   }
 
   th,
   td {
-    padding: 0.5rem;
+    padding: 0.4rem 0.5rem;
   }
+}
+
+/* Dark mode — controlled via data-theme attribute on <html> */
+[data-theme="dark"] {
+  --primary: #f59e0b;
+  --primary-dark: #d97706;
+  --primary-light: #fbbf24;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --bg-input: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #334155;
+}
+
+[data-theme="dark"] input {
+  color: var(--text);
+  background: var(--bg-input);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] table {
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] thead {
+  background: var(--bg-input);
+}
+
+[data-theme="dark"] tbody tr:hover {
+  background: rgba(251, 191, 36, 0.08);
+}
+
+[data-theme="dark"] .error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Loading skeleton animation */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    var(--bg-input) 50%,
+    var(--border) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--radius);
+  height: 1rem;
+  margin-bottom: 0.5rem;
 }

@@ -1,10 +1,6 @@
 import Decimal from 'decimal.js';
 import type { Transaction, CalculationBreakdown } from './types';
-
-// Constants
-const RATIO_11 = new Decimal(11);
-const RATIO_12 = new Decimal(12);
-const PERCENT_12 = new Decimal('0.12');
+import { PPN_RATIO_NUMERATOR, PPN_RATIO_DENOMINATOR, PPN_RATE_PERCENT } from './constants';
 
 /**
  * Calculate DPP (Dasar Pengenaan Pajak)
@@ -19,7 +15,7 @@ export function calculateDpp(transaction: Transaction): Decimal {
  * DPP Nilai Lain = DPP × 11/12
  */
 export function calculateDppNilaiLain(dpp: Decimal): Decimal {
-  return dpp.mul(RATIO_11).div(RATIO_12);
+  return dpp.mul(PPN_RATIO_NUMERATOR).div(PPN_RATIO_DENOMINATOR);
 }
 
 /**
@@ -27,7 +23,7 @@ export function calculateDppNilaiLain(dpp: Decimal): Decimal {
  * PPN = DPP Nilai Lain × 12%
  */
 export function calculatePpn(dppNilaiLain: Decimal): Decimal {
-  return dppNilaiLain.mul(PERCENT_12);
+  return dppNilaiLain.mul(PPN_RATE_PERCENT);
 }
 
 /**
