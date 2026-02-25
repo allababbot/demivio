@@ -50,6 +50,9 @@ export function calculateTransactionPpn(transaction: Transaction): Decimal {
  * Validate a transaction
  */
 export function validateTransaction(transaction: Transaction): string | null {
+  if (transaction.unitPrice.isNaN() || transaction.quantity.isNaN() || transaction.discount.isNaN()) {
+    return 'Input tidak valid (Bukan Angka)';
+  }
   if (transaction.unitPrice.lte(0)) {
     return 'Harga satuan harus positif';
   }

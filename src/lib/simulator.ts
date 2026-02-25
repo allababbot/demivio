@@ -3,11 +3,8 @@ import type { Transaction, SimulationConfig, SimulationResult, ResultMetadata, H
 import { calculateTransactionPpn, validateTransaction } from './calculator';
 import { PPN_EFFECTIVE_RATE } from './constants';
 
-/**
- * Create a composite key for transaction deduplication (Option A)
- */
 function createTransactionKey(unitPrice: Decimal, quantity: Decimal, discount: Decimal): string {
-  return `${unitPrice.toFixed(2)}|${quantity.toString()}|${discount.toFixed(2)}`;
+  return `${unitPrice.toString()}|${quantity.toString()}|${discount.toString()}`;
 }
 
 /**
@@ -23,7 +20,7 @@ function createTransactionKey(unitPrice: Decimal, quantity: Decimal, discount: D
  * This gives granular scores (e.g. 93.4%) instead of arbitrary step functions.
  */
 function calculateHumanScore(
-  result: { ppnDifference: Decimal; metadata: ResultMetadata }
+  result: { transaction: Transaction; ppnDifference: Decimal; metadata: ResultMetadata }
 ): HumanScore {
   const meta = result.metadata;
 
@@ -34,24 +31,23 @@ function calculateHumanScore(
   const ppnScore = 100 / (1 + 5 * ppnDiffPct / 100);
 
   // --- Factor 2: Price Similarity (15% weight) ---
-  // unitPriceDifference is absolute Rp. Normalize by reference via metadata.
-  // Use a generous scale: 10% price change ≈ 50% factor score
   const priceAbsDiff = meta.unitPriceDifference.abs().toNumber();
-  const priceRef = Math.max(1, priceAbsDiff + 1); // avoid div-by-zero edge
-  // We need reference price — reconstruct from diff + result price
-  // Actually unitPriceDifference = result.unitPrice - ref.unitPrice
-  // So ref = result - diff. But we only have abs diff here.
-  // Use a fixed scale factor based on typical price magnitudes
-  const priceScore = 100 / (1 + priceAbsDiff / 5000);
+  const priceRef = Math.max(1, result.transaction.unitPrice.sub(meta.unitPriceDifference).toNumber());
+  // k=15: 1% diff -> 86.9, 5% -> 57.1, 10% -> 40
+  const pricePct = priceAbsDiff / priceRef * 100;
+  const priceScore = 100 / (1 + 0.15 * pricePct);
 
   // --- Factor 3: Quantity Similarity (10% weight) ---
   const qtyAbsDiff = meta.quantityDifference.abs().toNumber();
-  // k scale: 1 qty diff ≈ 83 score, 5 diff ≈ 50, 10 diff ≈ 33
-  const qtyScore = 100 / (1 + qtyAbsDiff / 3);
+  const qtyRef = Math.max(1, result.transaction.quantity.sub(meta.quantityDifference).toNumber());
+  const qtyPct = qtyAbsDiff / qtyRef * 100;
+  const qtyScore = 100 / (1 + 0.15 * qtyPct);
 
   // --- Factor 4: Discount Similarity (15% weight) ---
   const discAbsDiff = meta.discountDifference.abs().toNumber();
-  const discScore = 100 / (1 + discAbsDiff / 5000);
+  const discRef = Math.max(1, result.transaction.discount.sub(meta.discountDifference).toNumber());
+  const discPct = discAbsDiff / discRef * 100;
+  const discScore = 100 / (1 + 0.15 * discPct);
 
   // --- Weighted composite ---
   const composite =
@@ -332,7 +328,10 @@ export function runSimulation(
     const exactDiscount = calculateRequiredDiscount(config.targetPpn, unitPrice, quantity);
     const roundedDiscount = roundToStep(exactDiscount, config.discountStep);
 
-    const discountsToTry = [exactDiscount];
+    const discountsToTry = [
+      exactDiscount,
+      Decimal.max(discountMin, Decimal.min(discountMax, exactDiscount)) // Clamped exact discount
+    ];
     if (!roundedDiscount.eq(exactDiscount)) {
       discountsToTry.push(roundedDiscount);
       discountsToTry.push(roundedDiscount.add(config.discountStep));
@@ -363,7 +362,10 @@ export function runSimulation(
     const exactQty = calculateRequiredQuantity(config.targetPpn, unitPrice, discount);
     const roundedQty = roundToStep(exactQty, config.quantityStep);
 
-    const qtysToTry = [exactQty];
+    const qtysToTry = [
+      exactQty,
+      Decimal.max(config.quantityMin, Decimal.min(config.quantityMax, exactQty)) // Clamped exact qty
+    ];
     if (!roundedQty.eq(exactQty)) {
       qtysToTry.push(roundedQty);
       qtysToTry.push(roundedQty.add(config.quantityStep));
@@ -396,7 +398,10 @@ export function runSimulation(
     const exactUnitPrice = calculateRequiredUnitPrice(config.targetPpn, quantity, discount);
     const roundedUnitPrice = roundToStep(exactUnitPrice, config.priceStep);
 
-    const pricesToTry = [exactUnitPrice];
+    const pricesToTry = [
+      exactUnitPrice,
+      Decimal.max(priceMin, Decimal.min(priceMax, exactUnitPrice)) // Clamped exact price
+    ];
     if (!roundedUnitPrice.eq(exactUnitPrice)) {
       pricesToTry.push(roundedUnitPrice);
       pricesToTry.push(roundedUnitPrice.add(config.priceStep));
@@ -541,6 +546,12 @@ export function validateConfig(config: SimulationConfig): string | null {
   }
   if (config.quantityStep.lte(0)) {
     return 'Step kuantitas harus positif';
+  }
+  if (config.priceStep.lte(0)) {
+    return 'Step harga harus positif';
+  }
+  if (config.discountStep.lte(0)) {
+    return 'Step diskon harus positif';
   }
 
   // With optimizations, we can handle much larger search spaces
