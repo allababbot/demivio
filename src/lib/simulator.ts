@@ -109,7 +109,8 @@ function createResult(
   // Calculate score: smaller is better
   const score = ppnDifference
     .add(alpha.mul(transaction.unitPrice.sub(reference.unitPrice).abs()))
-    .add(beta.mul(transaction.discount.sub(reference.discount).abs()));
+    .add(beta.mul(transaction.discount.sub(reference.discount).abs()))
+    .add(transaction.quantity.sub(reference.quantity).abs());
 
   const metadata: ResultMetadata = {
     ppnDifferencePercent: targetPpn.isZero()
@@ -181,43 +182,7 @@ function roundToStep(value: Decimal, step: Decimal): Decimal {
   return value.div(step).round().mul(step);
 }
 
-/**
- * Binary search to find optimal quantity range for a given discount (Option D)
- * Returns [minQty, maxQty] that produces PPN within tolerance of target
- */
-function findOptimalQtyRange(
-  targetPpn: Decimal,
-  discount: Decimal,
-  priceMin: Decimal,
-  priceMax: Decimal,
-  tolerance: Decimal,
-  qtyMin: Decimal,
-  qtyMax: Decimal
-): [Decimal, Decimal] | null {
-  // For a given discount and price range, find qty range that gives target PPN
-  // PPN = (unitPrice * qty - discount) * 0.11
-  // We need to find qty where calculated unitPrice is within [priceMin, priceMax]
-  
-  // Lower bound: unitPrice = priceMax (higher price = lower qty needed)
-  // qty_min_for_target = (targetPpn / 0.11 + discount) / priceMax
-  const qtyForMaxPrice = targetPpn.div(PPN_EFFECTIVE_RATE).add(discount).div(priceMax);
-  
-  // Upper bound: unitPrice = priceMin (lower price = higher qty needed)  
-  // qty_max_for_target = (targetPpn / 0.11 + discount) / priceMin
-  const qtyForMinPrice = priceMin.gt(0) 
-    ? targetPpn.div(PPN_EFFECTIVE_RATE).add(discount).div(priceMin)
-    : qtyMax;
-
-  // Clamp to config range
-  const effectiveMin = Decimal.max(qtyMin, qtyForMaxPrice.floor());
-  const effectiveMax = Decimal.min(qtyMax, qtyForMinPrice.ceil());
-
-  if (effectiveMin.gt(effectiveMax)) {
-    return null; // No valid qty in range
-  }
-
-  return [effectiveMin, effectiveMax];
-}
+// (findOptimalQtyRange removed — was dead code)
 
 /**
  * Generate search order based on priority (Option D)
@@ -226,6 +191,7 @@ function findOptimalQtyRange(
  */
 function* generatePriorityOrder(
   refQty: Decimal,
+  refDiscount: Decimal,
   qtyMin: Decimal,
   qtyMax: Decimal,
   qtyStep: Decimal,
@@ -252,11 +218,11 @@ function* generatePriorityOrder(
   }
   
   if (discountValues.length > 1) {
-    const discountCenter = discountMin.add(discountMax).div(2);
+    const discountCenter = Decimal.max(discountMin, Decimal.min(discountMax, refDiscount));
     discountValues.sort((a, b) => a.sub(discountCenter).abs().cmp(b.sub(discountCenter).abs()));
   }
 
-  // Yield in priority order (closer to center first)
+  // Yield in priority order (closer to reference first)
   for (const qty of qtyValues) {
     for (const discount of discountValues) {
       yield [qty, discount];
@@ -265,12 +231,46 @@ function* generatePriorityOrder(
 }
 
 /**
- * Estimate number of combinations (for math approach: qty × discount only)
+ * Estimate number of combinations, accounting for locked parameters
  */
 export function estimateCombinations(config: SimulationConfig): number {
-  const discountCount = config.discountMax.sub(config.discountMin).div(config.discountStep).floor().toNumber() + 1;
-  const quantityCount = config.quantityMax.sub(config.quantityMin).div(config.quantityStep).floor().toNumber() + 1;
+  const priceLocked = config.priceMin.eq(config.priceMax);
+  const discountLocked = config.discountMin.eq(config.discountMax);
+  const qtyLocked = config.quantityMin.eq(config.quantityMax);
 
+  const quantityCount = qtyLocked ? 1 :
+    config.quantityMax.sub(config.quantityMin).div(config.quantityStep).floor().toNumber() + 1;
+  const discountCount = discountLocked ? 1 :
+    config.discountMax.sub(config.discountMin).div(config.discountStep).floor().toNumber() + 1;
+
+  // When price and discount are locked, only qty varies
+  if (priceLocked && discountLocked) return quantityCount;
+  // When price is locked, iterate qty (discount computed per qty)
+  if (priceLocked) return quantityCount;
+  // When discount is locked, iterate qty (price computed per qty)
+  if (discountLocked) return quantityCount;
+  // Otherwise iterate qty × discount
+  return discountCount * quantityCount;
+}
+
+/**
+ * Estimate number of combinations from plain numbers (no Decimal.js).
+ * Used in the main thread to compute estimate before sending work to workers.
+ */
+export function estimateCombinationsSimple(config: {
+  priceMin: number; priceMax: number;
+  discountMin: number; discountMax: number; discountStep: number;
+  quantityMin: number; quantityMax: number; quantityStep: number;
+}): number {
+  const priceLocked = config.priceMin === config.priceMax;
+  const discountLocked = config.discountMin === config.discountMax;
+
+  const quantityCount = Math.max(1, Math.floor((config.quantityMax - config.quantityMin) / config.quantityStep) + 1);
+  const discountCount = Math.max(1, Math.floor((config.discountMax - config.discountMin) / config.discountStep) + 1);
+
+  if (priceLocked && discountLocked) return quantityCount;
+  if (priceLocked) return quantityCount;
+  if (discountLocked) return quantityCount;
   return discountCount * quantityCount;
 }
 
@@ -298,6 +298,8 @@ export function runSimulation(
   let count = 0;
   let perfectCount = 0; // Count of results with ppnDifference = 0
   const totalEstimate = estimateCombinations(config);
+  // Report progress ~100 times (each report ≈ 1% jump), min 100 iterations between reports
+  const reportInterval = Math.max(100, Math.floor(totalEstimate / 100));
   
   // Detect locked parameters (single value in range)
   const qtyLocked = config.quantityMin.eq(config.quantityMax);
@@ -308,10 +310,14 @@ export function runSimulation(
   // For locked parameters, smart order is still useful if the remaining space is large (> 5000)
   const shouldUseSmartOrder = totalEstimate > 5000;
 
+  // Enough results threshold: stop when we have 2× topN results
+  const enoughResults = config.topNResults * 2;
+
   // Option D: Use priority-based iteration for large searches
   const iterator = shouldUseSmartOrder
     ? generatePriorityOrder(
         config.referenceTransaction.quantity,
+        config.referenceTransaction.discount,
         config.quantityMin,
         config.quantityMax,
         config.quantityStep,
@@ -419,6 +425,12 @@ export function runSimulation(
     }
   };
 
+  // Helper: check if we should stop searching
+  const shouldStop = (): boolean =>
+    perfectCount >= config.topNResults ||
+    results.length >= enoughResults ||
+    (shouldCancel?.() ?? false);
+
   if (priceLocked && discountLocked) {
     // Only Qty is variable
     processPriceDiscount(priceMin, discountMin);
@@ -428,9 +440,12 @@ export function runSimulation(
       quantity.lte(config.quantityMax);
       quantity = quantity.add(config.quantityStep)
     ) {
-      if (perfectCount >= config.topNResults || shouldCancel?.()) break;
+      if (shouldStop()) break;
       processQtyUnitPrice(quantity, priceMin);
       count++;
+      if (onProgress && count % reportInterval === 0) {
+        onProgress(Math.min(count / totalEstimate, 0.99));
+      }
     }
   } else if (discountLocked) {
     for (
@@ -438,33 +453,39 @@ export function runSimulation(
       quantity.lte(config.quantityMax);
       quantity = quantity.add(config.quantityStep)
     ) {
-      if (perfectCount >= config.topNResults || shouldCancel?.()) break;
+      if (shouldStop()) break;
       processQtyDiscount(quantity, discountMin);
       count++;
+      if (onProgress && count % reportInterval === 0) {
+        onProgress(Math.min(count / totalEstimate, 0.99));
+      }
     }
   } else if (qtyLocked) {
     if (iterator) {
       for (const [quantity, discount] of iterator) {
-        if (shouldCancel?.()) break;
+        if (shouldStop()) break;
         processQtyDiscount(quantity, discount);
         count++;
-        if (perfectCount >= config.topNResults) break;
+        if (onProgress && count % reportInterval === 0) {
+          onProgress(Math.min(count / totalEstimate, 0.99));
+        }
       }
     } else {
       for (let d = discountMin; d.lte(discountMax); d = d.add(config.discountStep)) {
-        if (perfectCount >= config.topNResults || shouldCancel?.()) break;
+        if (shouldStop()) break;
         processQtyDiscount(config.quantityMin, d);
         count++;
+        if (onProgress && count % reportInterval === 0) {
+          onProgress(Math.min(count / totalEstimate, 0.99));
+        }
       }
     }
   } else if (iterator) {
     for (const [quantity, discount] of iterator) {
-      if (shouldCancel?.()) break;
+      if (shouldStop()) break;
       processQtyDiscount(quantity, discount);
       count++;
-      if (perfectCount >= config.topNResults) break;
-
-      if (onProgress && count % 1000 === 0) {
+      if (onProgress && count % reportInterval === 0) {
         onProgress(Math.min(count / totalEstimate, 0.99));
       }
     }
@@ -474,18 +495,16 @@ export function runSimulation(
       quantity.lte(config.quantityMax);
       quantity = quantity.add(config.quantityStep)
     ) {
-      if (perfectCount >= config.topNResults || shouldCancel?.()) break;
-
+      if (shouldStop()) break;
       for (
         let discount = discountMin;
         discount.lte(discountMax);
         discount = discount.add(config.discountStep)
       ) {
-        if (shouldCancel?.()) break;
+        if (shouldStop()) break;
         processQtyDiscount(quantity, discount);
         count++;
-
-        if (onProgress && count % 1000 === 0) {
+        if (onProgress && count % reportInterval === 0) {
           onProgress(Math.min(count / totalEstimate, 0.99));
         }
       }

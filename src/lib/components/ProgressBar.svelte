@@ -4,7 +4,15 @@
 </script>
 
 <div class="card">
-  <p>Memproses {estimate.toLocaleString()} kombinasi...</p>
+  <p>
+    {#if estimate > 0}
+      Memproses {estimate.toLocaleString()} kombinasi... {(
+        progress * 100
+      ).toFixed(1)}%
+    {:else}
+      Memproses...
+    {/if}
+  </p>
   <div class="progress-bar">
     <div class="progress-fill" style="width: {progress * 100}%"></div>
   </div>

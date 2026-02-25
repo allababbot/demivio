@@ -5,6 +5,7 @@
     WorkerResponse,
   } from "$lib/worker-types";
   import { validateFormInputs } from "$lib/validation";
+  import { estimateCombinationsSimple } from "$lib/simulator";
   import { exportResultsToCsv } from "$lib/exportCsv";
   import ReferenceForm from "$lib/components/ReferenceForm.svelte";
   import TargetForm from "$lib/components/TargetForm.svelte";
@@ -115,6 +116,44 @@
     workers = [];
   });
 
+  function finalizeSimulation(
+    workerResults: SerializableSimulationResult[][],
+    startTime: number,
+    baseConfig: SerializableSimulationConfig,
+    genId: number,
+  ) {
+    if (genId !== currentGenerationId) return;
+
+    const allResults = workerResults.flat();
+    const uniqueResults = Array.from(
+      new Map(
+        allResults.map((r) => [
+          `${r.transaction.unitPrice}|${r.transaction.quantity}|${r.transaction.discount}`,
+          r,
+        ]),
+      ).values(),
+    );
+
+    uniqueResults.sort((a, b) => {
+      const aPerfect = a.ppnDifference === 0;
+      const bPerfect = b.ppnDifference === 0;
+      if (aPerfect && !bPerfect) return -1;
+      if (!aPerfect && bPerfect) return 1;
+      return a.score - b.score;
+    });
+
+    simResults = uniqueResults.slice(0, topN);
+    simElapsed = performance.now() - startTime;
+    simRunning = false;
+    simProgress = 1;
+
+    if (simResults.length === 0) {
+      simError = "Tidak ditemukan hasil dalam toleransi yang ditentukan.";
+    } else {
+      saveToCache(baseConfig, simResults).catch(console.error);
+    }
+  }
+
   async function handleSimulate() {
     if (workers.length === 0) {
       simError = "Worker tidak tersedia";
@@ -151,6 +190,36 @@
 
     const startTime = performance.now();
 
+    // Resolve effective ranges
+    const effPriceMin = isPriceLocked ? (refPrice ?? 0) : (priceMin ?? 0);
+    const effPriceMax = isPriceLocked ? (refPrice ?? 0) : (priceMax ?? 1000000);
+    const effDiscountMin = isDiscountLocked
+      ? (refDiscount ?? 0)
+      : (discountMin ?? 0);
+    const effDiscountMax = isDiscountLocked
+      ? (refDiscount ?? 0)
+      : (discountMax ?? 1000000);
+    const effQtyMin = isQtyLocked ? (refQuantity ?? 1) : (qtyMin ?? 1);
+    const effQtyMax = isQtyLocked ? (refQuantity ?? 1) : (qtyMax ?? 1000);
+
+    // Auto-compute step sizes to cap combinations at ~5M
+    const MAX_COMBINATIONS = 5_000_000;
+    const qtyCount = Math.max(1, effQtyMax - effQtyMin + 1);
+    const discountRange = effDiscountMax - effDiscountMin;
+    const priceRange = effPriceMax - effPriceMin;
+    const autoDiscountStep = Math.max(
+      1,
+      Math.ceil(
+        discountRange / Math.max(1, Math.floor(MAX_COMBINATIONS / qtyCount)),
+      ),
+    );
+    const autoPriceStep = Math.max(
+      1,
+      Math.ceil(
+        priceRange / Math.max(1, Math.floor(MAX_COMBINATIONS / qtyCount)),
+      ),
+    );
+
     const baseConfig: SerializableSimulationConfig = {
       referenceTransaction: {
         unitPrice: refPrice ?? 0,
@@ -159,17 +228,15 @@
       },
       targetPpn: targetPpn ?? 0,
       tolerance: tolerance,
-      priceMin: isPriceLocked ? (refPrice ?? 0) : (priceMin ?? 0),
-      priceMax: isPriceLocked ? (refPrice ?? 0) : (priceMax ?? 1000000),
-      discountMin: isDiscountLocked ? (refDiscount ?? 0) : (discountMin ?? 0),
-      discountMax: isDiscountLocked
-        ? (refDiscount ?? 0)
-        : (discountMax ?? 1000000),
-      quantityMin: isQtyLocked ? (refQuantity ?? 1) : (qtyMin ?? 1),
-      quantityMax: isQtyLocked ? (refQuantity ?? 1) : (qtyMax ?? 1000),
+      priceMin: effPriceMin,
+      priceMax: effPriceMax,
+      discountMin: effDiscountMin,
+      discountMax: effDiscountMax,
+      quantityMin: effQtyMin,
+      quantityMax: effQtyMax,
       quantityStep: 1,
-      priceStep: 1,
-      discountStep: 1,
+      priceStep: autoPriceStep,
+      discountStep: autoDiscountStep,
       alpha: 1,
       beta: 0.1,
       topNResults: topN,
@@ -185,6 +252,9 @@
       return;
     }
 
+    // Compute estimate upfront so ProgressBar shows immediately
+    simEstimate = estimateCombinationsSimple(baseConfig);
+
     // Parallel worker execution
     let activeWorkers = workers.length;
     let progressMap = new Map<number, number>();
@@ -197,15 +267,26 @@
 
     workers.forEach((worker, i) => {
       const startQty = baseConfig.quantityMin + i * sliceSize;
+
+      // If startQty already exceeds quantityMax, this worker has no work to do
+      if (startQty > baseConfig.quantityMax) {
+        activeWorkers--;
+        // If this was the last worker to "complete" (due to no work), finalize results
+        if (activeWorkers === 0) {
+          finalizeSimulation(workerResults, startTime, baseConfig, genId);
+        }
+        return;
+      }
+
       const endQty =
         i === workers.length - 1
           ? baseConfig.quantityMax
-          : startQty + sliceSize - 1;
+          : Math.min(startQty + sliceSize - 1, baseConfig.quantityMax);
 
       const workerConfig = {
         ...baseConfig,
         quantityMin: startQty,
-        quantityMax: Math.max(startQty, endQty),
+        quantityMax: endQty,
       };
 
       worker.onerror = (error) => {
@@ -234,34 +315,7 @@
           activeWorkers--;
 
           if (activeWorkers === 0) {
-            const allResults = workerResults.flat();
-            const uniqueResults = Array.from(
-              new Map(
-                allResults.map((r) => [
-                  `${r.transaction.unitPrice}|${r.transaction.quantity}|${r.transaction.discount}`,
-                  r,
-                ]),
-              ).values(),
-            );
-            uniqueResults.sort((a, b) => {
-              const aPerfect = a.ppnDifference === 0;
-              const bPerfect = b.ppnDifference === 0;
-              if (aPerfect && !bPerfect) return -1;
-              if (!aPerfect && bPerfect) return 1;
-              return a.score - b.score;
-            });
-            simResults = uniqueResults.slice(0, topN);
-
-            simElapsed = performance.now() - startTime;
-            simRunning = false;
-            simProgress = 1;
-
-            if (simResults.length === 0) {
-              simError =
-                "Tidak ditemukan hasil dalam toleransi yang ditentukan.";
-            } else {
-              saveToCache(baseConfig, simResults).catch(console.error);
-            }
+            finalizeSimulation(workerResults, startTime, baseConfig, genId);
           }
         } else if (response.type === "error") {
           simError = response.message;
@@ -315,9 +369,7 @@
 <div class="container">
   <div class="header">
     <h1>Demivio</h1>
-    <p class="subtitle">
-      Kalkulator PPN
-    </p>
+    <p class="subtitle">Kalkulator PPN</p>
   </div>
 
   <div class="dashboard-grid">
