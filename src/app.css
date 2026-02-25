@@ -405,12 +405,12 @@ tr:hover {
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --bg: #0f172a;
-  --bg-card: #1e293b;
-  --bg-input: #334155;
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  --border: #334155;
+  --bg: #1c1917; /* stone-900 */
+  --bg-card: #292524; /* stone-800 */
+  --bg-input: #44403c; /* stone-700 */
+  --text: #fafaf9; /* stone-50 */
+  --text-muted: #a8a29e; /* stone-400 */
+  --border: #44403c; /* stone-700 */
 }
 
 [data-theme="dark"] input {

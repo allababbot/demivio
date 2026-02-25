@@ -1,7 +1,167 @@
 <script>
   import "../app.css";
-  import ThemeToggle from "$lib/components/ThemeToggle.svelte";
+  import TopBar from "$lib/components/TopBar.svelte";
+
+  let showHelp = false;
+
+  function handleHelpClick() {
+    showHelp = true;
+  }
 </script>
 
-<ThemeToggle />
+<TopBar onHelpClick={handleHelpClick} />
+
+<!-- Modal for Help -->
+{#if showHelp}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    class="modal-backdrop"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    on:click={() => (showHelp = false)}
+  >
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal" on:click|stopPropagation>
+      <div class="modal-header">
+        <h2>Cara Menggunakan Demivio</h2>
+        <button class="close-btn" on:click={() => (showHelp = false)}>×</button>
+      </div>
+      <div class="modal-content">
+        <p>
+          <strong>Demivio</strong> adalah kalkulator simulasi PPN (Pajak Pertambahan
+          Nilai) yang membantu Anda menemukan kombinasi Harga Satuan, Kuantitas,
+          dan Potongan/Diskon yang pas untuk mencapai target PPN yang Anda inginkan.
+        </p>
+
+        <h3>Langkah-langkah:</h3>
+        <ol>
+          <li>
+            <strong>Isi Transaksi Acuan:</strong> Masukkan perkiraan harga satuan,
+            kuantitas, dan potongan atau diskon. Anda dapat mengunci nilai tertentu
+            agar hasil simulasi hanya berdasarkan nilai tersebut.
+          </li>
+          <li>
+            <strong>Target PPN:</strong> Masukkan nilai PPN yang Anda
+            inginkan.
+          </li>
+          <li>
+            <strong>Parameter Simulasi (Opsional):</strong> Sesuaikan rentang toleransi
+            dan batas pencarian (min/max) untuk Harga, Jumlah, dan Diskon jika diperlukan.
+          </li>
+          <li>
+            <strong>Jalankan:</strong> Klik tombol "Jalankan". Sistem akan mencari
+            kombinasi terbaik yang mendekati atau sama dengan target PPN Anda.
+          </li>
+          <li>
+            <strong>Hasil:</strong> Lihat tabel hasil. Kombinasi dengan kualitas
+            terbaik adalah yang paling akurat.
+          </li>
+        </ol>
+
+        <p
+          style="margin-top: 1rem; font-size: 0.9em; color: var(--text-muted);"
+        >
+          <em
+            >Tip: Semakin kecil rentang parameter pencarian, proses simulasi
+            akan semakin cepat.</em
+          >
+        </p>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <slot />
+
+<style>
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+
+  .modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+  }
+
+  .close-btn:hover {
+    color: var(--danger);
+    background: var(--bg-hover);
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .modal-content p {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  .modal-content h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--primary);
+    font-size: 1.1rem;
+  }
+
+  .modal-content ol {
+    padding-left: 1.5rem;
+    margin: 0;
+  }
+
+  .modal-content li {
+    margin-bottom: 0.5rem;
+  }
+</style>

@@ -17,6 +17,7 @@
   );
   $: totalPages = Math.ceil(results.length / itemsPerPage);
   $: if (results) currentPage = 1; // Reset page when results change
+  $: if (results || currentPage) selectedRowIndex = null;
 
   function changePage(newPage: number) {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -30,10 +31,12 @@
     return `${(ms / 1000).toFixed(2)}s`;
   }
 
-  // Clipboard
+  // Clipboard and Row Selection
   let copiedId: string | null = null;
+  let selectedRowIndex: number | null = null;
 
-  function copyToClipboard(text: string, id: string) {
+  function copyToClipboard(text: string, id: string, rowIndex: number) {
+    selectedRowIndex = rowIndex;
     if (browser && navigator.clipboard) {
       navigator.clipboard.writeText(text).then(() => {
         copiedId = id;
@@ -90,7 +93,13 @@
         </thead>
         <tbody>
           {#each paginatedResults as result, i}
-            <tr>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <tr
+              class:selected={selectedRowIndex === i}
+              on:click={() => (selectedRowIndex = i)}
+              style="cursor: pointer;"
+            >
               <td
                 ><span class="badge badge-rank"
                   >{(currentPage - 1) * itemsPerPage + i + 1}</span
@@ -102,14 +111,44 @@
                   <button
                     class="btn-copy"
                     class:copied={copiedId === `price-${i}`}
-                    on:click={() =>
+                    on:click|stopPropagation={() =>
                       copyToClipboard(
                         formatValueForCopy(result.transaction.unitPrice),
                         `price-${i}`,
+                        i,
                       )}
                     title="Salin Harga"
                   >
-                    {copiedId === `price-${i}` ? "✓" : "❐"}
+                    {#if copiedId === `price-${i}`}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><polyline points="20 6 9 17 4 12"></polyline></svg
+                      >
+                    {:else}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"
+                        ></rect><path
+                          d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                        ></path></svg
+                      >
+                    {/if}
                   </button>
                 </div>
               </td>
@@ -120,14 +159,44 @@
                   <button
                     class="btn-copy"
                     class:copied={copiedId === `discount-${i}`}
-                    on:click={() =>
+                    on:click|stopPropagation={() =>
                       copyToClipboard(
                         formatValueForCopy(result.transaction.discount),
                         `discount-${i}`,
+                        i,
                       )}
                     title="Salin Potongan"
                   >
-                    {copiedId === `discount-${i}` ? "✓" : "❐"}
+                    {#if copiedId === `discount-${i}`}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><polyline points="20 6 9 17 4 12"></polyline></svg
+                      >
+                    {:else}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"
+                        ></rect><path
+                          d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                        ></path></svg
+                      >
+                    {/if}
                   </button>
                 </div>
               </td>
@@ -137,14 +206,44 @@
                   <button
                     class="btn-copy"
                     class:copied={copiedId === `dpp-${i}`}
-                    on:click={() =>
+                    on:click|stopPropagation={() =>
                       copyToClipboard(
                         formatValueForCopy(result.metadata.dppNilaiLain),
                         `dpp-${i}`,
+                        i,
                       )}
                     title="Salin DPP Nilai Lain"
                   >
-                    {copiedId === `dpp-${i}` ? "✓" : "❐"}
+                    {#if copiedId === `dpp-${i}`}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><polyline points="20 6 9 17 4 12"></polyline></svg
+                      >
+                    {:else}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"
+                        ></rect><path
+                          d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                        ></path></svg
+                      >
+                    {/if}
                   </button>
                 </div>
               </td>
@@ -211,13 +310,13 @@
   }
 
   .btn-copy {
-    background: var(--bg-card, white);
-    border: 1px solid var(--primary-light);
+    background: transparent;
+    border: none;
     border-radius: 4px;
     padding: 2px 6px;
     cursor: pointer;
     font-size: 0.75rem;
-    color: var(--primary);
+    color: var(--text-muted);
     transition: all 0.2s;
     line-height: 1;
     display: flex;
@@ -228,15 +327,22 @@
   }
 
   .btn-copy:hover {
-    border-color: var(--primary);
     color: var(--primary);
     background: rgba(251, 191, 36, 0.1);
   }
 
   .btn-copy.copied {
-    background: var(--success);
-    color: white;
-    border-color: var(--success);
+    background: transparent;
+    color: var(--success);
+  }
+
+  tr.selected {
+    background: rgba(217, 119, 6, 0.06);
+    box-shadow: inset 3px 0 0 var(--primary);
+  }
+
+  :global([data-theme="dark"]) tr.selected {
+    background: rgba(245, 158, 11, 0.12);
   }
 
   .accuracy-badge {

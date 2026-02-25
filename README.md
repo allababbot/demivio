@@ -1,6 +1,6 @@
 # Demivio - Kalkulator PPN
 
-Demivio adalah aplikasi simulasi perhitungan "Reverse Calculator" untuk PPN (Pajak Pertambahan Nilai). Aplikasi ini membantu pengguna mencari kombinasi Harga Satuan, Kuantitas, dan Diskon yang tepat untuk mencapai target PPN tertentu.
+Demivio adalah aplikasi simulasi perhitungan "Reverse Calculator" untuk PPN (Pajak Pertambahan Nilai). Aplikasi ini membantu pengguna mencari kombinasi Harga Satuan, Kuantitas, dan Potongan/Diskon yang tepat untuk mencapai target PPN tertentu.
 
 ## Fitur Utama
 
