@@ -1,36 +1,49 @@
-# Demivio - Kalkulator PPN
+# Demivio - Tax Utility Suite
 
-Demivio adalah aplikasi simulasi perhitungan "Reverse Calculator" untuk PPN (Pajak Pertambahan Nilai). Aplikasi ini membantu pengguna mencari kombinasi Harga Satuan, Kuantitas, dan Potongan/Diskon yang tepat untuk mencapai target PPN tertentu.
+Demivio adalah sekumpulan utilitas berbasis web yang dirancang untuk mempermudah perhitungan dan pengelolaan administrasi perpajakan yang kompleks menjadi lebih cepat dan otomatis. Saat ini Demivio memiliki dua fitur utama: **Kalkulator PPN** dan **Rekonsiliasi**.
 
 ## Fitur Utama
 
-- **Reverse Calculation**: Menghitung mundur dari Target PPN yang diinginkan untuk menemukan Harga Satuan yang sesuai.
-- **Simulasi Cerdas**: Menggunakan pendekatan matematis dan algoritma prioritas untuk menemukan kombinasi yang valid tanpa brute-force yang berat.
-- **High Performance & Precision**: Mendukung pencarian hingga 5 juta kombinasi dinamis secara paralel tanpa lag, dilengkapi resolusi desimal tak berhingga untuk menghindari _dead-zones_ pada pencarian nilai eksak.
-- **Web Worker**: Menjalankan kalkulasi berat di background thread agar UI tidak pernah freeze.
-- **Kustomisasi Parameter**:
-  - Mengatur toleransi selisih PPN.
-  - Mengatur rentang (range) harga dan diskon dari transaksi acuan.
-  - Menentukan range kuantitas minimum dan maksimum.
-  - Fitur **Lock**: Mengunci salah satu parameter (Harga, Qty, atau Diskon) agar tidak berubah selama simulasi.
-- **Smart Defaults**: Secara otomatis menghitung _step_ terbaik berdasarkan rentang untuk mencegah _infinite loops_ dan menjaga performa peramban.
-- **Copy to Clipboard**: Menyalin hasil perhitungan (Harga, Diskon, DPP Nilai Lain) dengan satu klik dalam format yang siap digunakan.
-- **Ranking Hasil**: Menampilkan hasil terbaik berdasarkan persentase kedekatan (_Percentage Error Ratio_) dengan referensi transaksi.
+### 1. Kalkulator PPN (Reverse Calculator)
+
+Aplikasi simulasi cerdas untuk menemukan kombinasi Harga Satuan, Kuantitas, dan Potongan/Diskon yang paling tepat untuk mencapai target PPN yang spesifik.
+
+- **Reverse Calculation**: Menghitung mundur dari Target PPN ke Harga Satuan yang sesuai.
+- **High Performance & Precision**: Menggunakan algoritma matematis dan _Web Workers_ untuk mengeksplorasi hingga 5 juta kombinasi tanpa membuat browser _freeze_.
+- **Kustomisasi Parameter**: Tentukan rentang toleransi selisih PPN, batas pencarian komponen harga, atau kunci (lock) parameter tertentu.
+
+### 2. Rekonsiliasi Penjualan
+
+Tool otomatisasi untuk membandingkan dan mencocokkan (rekonsiliasi) data transaksi penjualan bulanan antara sistem perusahaan dan DJP (Coretax).
+
+- **Automated Matching**: Menggabungkan data dari CSV Coretax dan CSV Aplikasi Penjualan berdasarkan Nomor Referensi secara kilat.
+- **Deteksi Selisih Detil**: Secara otomatis menyoroti baris transaksi yang memiliki selisih pada nilai DPP maupun PPN.
+- **Filter & Sort**: Dilengkapi _quick-filters_ untuk melihat kombinasi data (Hanya Coretax, Hanya Aplikasi, Ada Selisih) serta pengurutan data terintegrasi.
+- **Bebas Server**: Proses parsing, deduplikasi, dan komparasi CSV dilakukan seratus persen di sisi _client_ (browser) menggunakan File API demi privasi dan kecepatan maksimal.
 
 ## Cara Menggunakan
 
-1.  **Transaksi Acuan**: Masukkan data transaksi normal (Harga Satuan, Qty, Potongan) sebagai referensi. Anda bisa mengunci (lock) parameter tertentu jika tidak ingin nilainya bergeser.
-2.  **Target & Toleransi**: Tentukan berapa PPN yang ingin dicapai dan toleransi selisih yang diizinkan (misal: +/- Rp 1).
-3.  **Parameter Pencarian**: Sesuaikan batasan pencarian seperti Harga Min/Max, Potongan Min/Max, dan batasan Qty.
-4.  **Jalankan Simulasi**: Klik tombol "Jalankan". Worker di background akan memecah kalkulasi dan melaporkan progresnya secara _real-time_.
-5.  **Hasil**: Lihat daftar kombinasi yang ditemukan. Klik ikon ❐ untuk menyalin nilai tertentu ke clipboard.
+### Kalkulator PPN
+
+1. Masukkan **Transaksi Acuan** (Harga Satuan, Qty, Potongan).
+2. Tentukan **Target PPN** dan batas **Toleransi**.
+3. Sesuaikan batasan rentang pencarian komponen sebelum menekan tombol **Jalankan**.
+4. Hasil komputasi akan diurutkan berdasarkan tingkat akurasi terdekat.
+
+### Rekonsiliasi
+
+1. Siapkan data penjualan sesuai **Template CSV** yang tersedia di aplikasi.
+2. Unggah file data dari **Coretax** dan file data dari **Aplikasi Penjualan**.
+3. Tabel akan otomatis menampilkan perbandingan dan menyorot baris yang terdapat selisih pencatatan.
+4. Klik pada baris tabel mana saja untuk melihat rincian sumber aslinya.
 
 ## Teknologi
 
-- SvelteKit
+- SvelteKit (UI & Routing)
 - TypeScript
-- Web Workers (untuk background processing)
-- Decimal.js (untuk akurasi perhitungan keuangan)
+- Web Workers (Background Processing)
+- Decimal.js (High-precision financial calculation)
+- PapaParse (CSV Parsing & Export)
 
 ## Cara Menjalankan
 
