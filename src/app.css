@@ -63,7 +63,7 @@ body {
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 4.5rem 1rem 1rem 1rem;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -460,4 +460,20 @@ tr:hover {
   border-radius: var(--radius);
   height: 1rem;
   margin-bottom: 0.5rem;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

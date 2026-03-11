@@ -17,7 +17,6 @@
   import { browser } from "$app/environment";
   import { saveToCache, getFromCache } from "$lib/db";
   import type { CachedSimulation } from "$lib/db";
-  import Navbar from "$lib/components/Navbar.svelte";
 
   // Reference transaction
   let refPrice = 50000;
@@ -113,7 +112,9 @@
     if (browser) {
       document.removeEventListener("keydown", handleKeydown);
     }
-    workers.forEach((w) => w.terminate());
+    workers.forEach((w) => {
+      w.terminate();
+    });
     workers = [];
   });
 
@@ -368,11 +369,6 @@
 </script>
 
 <div class="container">
-  <div class="header">
-    <h1>Demivio</h1>
-    <Navbar />
-  </div>
-
   <div class="dashboard-grid">
     <!-- SIDEBAR: Inputs -->
     <div class="sidebar">

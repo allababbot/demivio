@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Navbar from "$lib/components/Navbar.svelte";
+  import TopBar from "$lib/components/TopBar.svelte";
   import { browser } from "$app/environment";
 
   // ── Types ────────────────────────────────────────────────────────────────
@@ -426,11 +426,6 @@
 </script>
 
 <div class="container">
-  <div class="header">
-    <h1>Demivio</h1>
-    <Navbar />
-  </div>
-
   <div class="rekon-body">
     <!-- Upload row (compact) -->
     <div class="upload-row">
