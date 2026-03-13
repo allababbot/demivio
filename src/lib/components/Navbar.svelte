@@ -18,6 +18,13 @@
   >
     Rekonsiliasi
   </a>
+  <a
+    href="/bppu"
+    class="nav-link"
+    class:active={$page.url.pathname.startsWith("/bppu")}
+  >
+    BPPU Extractor
+  </a>
 </nav>
 
 <style>

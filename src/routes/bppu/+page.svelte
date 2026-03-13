@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Navbar from '$lib/components/Navbar.svelte';
   import { parseBppuText, extractPdfTextLocal } from '$lib/bppu/parser';
   import { fileSizeLabel, toCSV, fmtRp } from '$lib/bppu/formatter';
   import type { BppuResult, BppuData, ObjekPajak } from '$lib/bppu/types';
@@ -121,7 +122,8 @@
   <title>BPPU Extractor – Demivio</title>
 </svelte:head>
 
-<div class="container bppu-page">
+<div class="container bppu-page animate-in">
+  <Navbar />
   <!-- Page Header -->
   <div class="page-header">
     <div class="page-title-group">

@@ -4,11 +4,6 @@
   
   export let onHelpClick: () => void = () => {};
 
-  const navLinks = [
-    { href: '/kalkulator', label: 'Kalkulator PPN' },
-    { href: '/rekonsiliasi', label: 'Rekonsiliasi' },
-    { href: '/bppu', label: 'BPPU Extractor' }
-  ];
 </script>
 
 <div class="top-bar-wrapper">
@@ -18,18 +13,6 @@
       <p class="brand-tagline">Simulator PPN & Rekonsiliasi Pajak</p>
     </div>
 
-    <!-- Navigation Center - Preserving new feature -->
-    <nav class="nav-links">
-      {#each navLinks as link}
-        <a
-          href={link.href}
-          class="nav-link"
-          class:active={$page.url.pathname.startsWith(link.href) || ($page.url.pathname === '/' && link.href === '/kalkulator')}
-        >
-          {link.label}
-        </a>
-      {/each}
-    </nav>
 
     <div class="utility-icons">
       <button
@@ -130,36 +113,6 @@
     font-weight: 500;
   }
 
-  /* Navigation Styles - Preserving new feature UI structure but matching local theme */
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .nav-link {
-    padding: 0.4rem 0.875rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-decoration: none;
-    transition: var(--transition);
-    white-space: nowrap;
-  }
-
-  .nav-link:hover {
-    color: var(--text);
-    background: var(--surface);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .nav-link.active {
-    color: var(--primary-dark);
-    background: var(--surface);
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
-  }
 
   .utility-icons {
     display: flex;
@@ -208,9 +161,6 @@
   @media (max-width: 640px) {
     .brand-tagline {
       display: none;
-    }
-    .nav-links {
-      display: none; /* Hide nav on mobile to keep it clean, same as remote's probable intent */
     }
   }
 </style>
