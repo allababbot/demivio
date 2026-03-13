@@ -762,14 +762,16 @@
                   class="ref-th sortable"
                   on:click={() => toggleSort("referensi")}
                 >
-                  <span>Referensi</span>
-                  <span class="sort-icon" class:active={sortCol === "referensi"}
-                    >{sortCol === "referensi"
-                      ? sortDir === "asc"
-                        ? "↑"
-                        : "↓"
-                      : "↕"}</span
-                  >
+                  <div class="th-content">
+                    <span>Referensi</span>
+                    <span class="sort-icon" class:active={sortCol === "referensi"}
+                      >{sortCol === "referensi"
+                        ? sortDir === "asc"
+                          ? "↑"
+                          : "↓"
+                        : "↕"}</span
+                    >
+                  </div>
                 </th>
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -1396,45 +1398,6 @@
     border-right: 1px solid var(--border);
     gap: 4px;
   }
-  .upload-card {
-    padding: 0;
-    overflow: hidden;
-  }
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    background: var(--surface-alt);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .step-badge {
-    width: 20px;
-    height: 20px;
-    background: var(--primary);
-    color: var(--text-on-primary);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-  }
-
-  .card-title {
-    font-size: var(--text-xs);
-    white-space: nowrap;
-  }
-
-  .file-count {
-    font-size: var(--text-xs);
-    color: var(--success);
-    font-weight: 500;
-    margin-left: auto;
-    white-space: nowrap;
-  }
 
   /* Processing bar */
   .processing-bar {
@@ -1528,6 +1491,7 @@
     overflow: auto;
     flex: 1;
     min-height: 0;
+    position: relative;
   }
 
   .rekon-table {
@@ -1549,6 +1513,17 @@
     z-index: 2;
     text-align: right;
     border-bottom: 2px solid var(--border-strong);
+  }
+
+  .ref-th, .ref-cell {
+    text-align: left !important;
+  }
+
+  .th-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.25rem;
   }
 
   .rekon-table td {
@@ -1593,6 +1568,9 @@
     padding: var(--space-4);
     border-bottom: 1px solid var(--border);
     background: var(--surface-alt);
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
 
   .search-wrap {
@@ -1610,7 +1588,7 @@
 
   .search-input {
     width: 100%;
-    padding: var(--space-2) var(--space-10) var(--space-2) var(--space-8);
+    padding: var(--space-2) var(--space-4) var(--space-2) var(--space-12);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--surface);
@@ -1683,6 +1661,50 @@
   .sort-icon.active {
     opacity: 1;
     color: var(--primary);
+  }
+
+  /* ── Copy Button ─────────────────────────────────────────────────────── */
+  .cell-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .btn-copy {
+    opacity: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  tr:hover .btn-copy, .btn-copy.copied {
+    opacity: 1;
+  }
+
+  .btn-copy:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--surface);
+  }
+
+  .btn-copy.copied {
+    color: var(--success);
+    border-color: var(--success);
+  }
+
+  .btn-copy svg {
+    width: 14px;
+    height: 14px;
   }
 
   .empty-row {
