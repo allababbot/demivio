@@ -9,9 +9,15 @@
   export let isDiscountLocked: boolean;
 </script>
 
-<div class="card">
-  <h2 class="card-title">1. Transaksi Acuan</h2>
-  <div>
+<div class="card ref-card animate-in">
+  <header class="card-header">
+    <div class="card-header-main">
+      <div class="step-badge">1</div>
+      <h2 class="card-title">Transaksi Acuan</h2>
+    </div>
+  </header>
+  
+  <div class="form-content">
     <div class="form-group">
       <label for="ref-price">Harga Satuan (Rp)</label>
       <NumberInput
@@ -23,7 +29,7 @@
       />
     </div>
     <div class="form-group">
-      <label for="ref-qty">Qty</label>
+      <label for="ref-qty">Kuantitas</label>
       <NumberInput
         id="ref-qty"
         bind:value={refQuantity}
@@ -33,7 +39,7 @@
       />
     </div>
     <div class="form-group">
-      <label for="ref-discount">Potongan (Rp)</label>
+      <label for="ref-discount">Potongan / Diskon (Rp)</label>
       <NumberInput
         id="ref-discount"
         bind:value={refDiscount}
@@ -44,3 +50,21 @@
     </div>
   </div>
 </div>
+
+<style>
+  .ref-card {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .card-title {
+    font-size: var(--text-xs);
+  }
+
+  .form-content {
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+</style>

@@ -12,6 +12,7 @@
   import ParametersPanel from "$lib/components/ParametersPanel.svelte";
   import ResultsTable from "$lib/components/ResultsTable.svelte";
   import ProgressBar from "$lib/components/ProgressBar.svelte";
+  import Navbar from "$lib/components/Navbar.svelte";
   import HistoryPanel from "$lib/components/HistoryPanel.svelte";
   import { onMount, onDestroy } from "svelte";
   import { browser } from "$app/environment";
@@ -368,77 +369,167 @@
   }
 </script>
 
-<div class="container">
+  <div class="container animate-in">
+  <Navbar />
   <div class="dashboard-grid">
     <!-- SIDEBAR: Inputs -->
-    <div class="sidebar">
-      <ReferenceForm
-        bind:refPrice
-        bind:refQuantity
-        bind:refDiscount
-        bind:isPriceLocked
-        bind:isQtyLocked
-        bind:isDiscountLocked
-      />
+    <aside class="sidebar">
+      <div class="input-stack">
+        <ReferenceForm
+          bind:refPrice
+          bind:refQuantity
+          bind:refDiscount
+          bind:isPriceLocked
+          bind:isQtyLocked
+          bind:isDiscountLocked
+        />
 
-      <TargetForm bind:targetPpn />
+        <TargetForm bind:targetPpn />
 
-      <ParametersPanel
-        bind:showParameters
-        bind:priceMin
-        bind:priceMax
-        bind:discountMin
-        bind:discountMax
-        bind:qtyMin
-        bind:qtyMax
-        bind:topN
-        bind:tolerance
-      />
+        <ParametersPanel
+          bind:showParameters
+          bind:priceMin
+          bind:priceMax
+          bind:discountMin
+          bind:discountMax
+          bind:qtyMin
+          bind:qtyMax
+          bind:topN
+          bind:tolerance
+        />
 
-      {#if validationErrors.length > 0}
-        <div class="error" style="margin-bottom: 0.5rem;">
-          <ul style="margin: 0; padding-left: 1.2rem;">
-            {#each validationErrors as err}
-              <li>{err}</li>
-            {/each}
-          </ul>
-        </div>
-      {/if}
-
-      <div style="display: flex; gap: 0.5rem;">
-        <button
-          class="btn btn-primary"
-          style="flex: 1;"
-          on:click={handleSimulate}
-          disabled={simRunning}
-        >
-          {simRunning ? "..." : "Jalankan"}
-        </button>
-        {#if simRunning}
-          <button
-            class="btn btn-outline"
-            style="background: var(--danger); color: white; border: none;"
-            on:click={handleCancel}
-          >
-            Batal
-          </button>
+        {#if validationErrors.length > 0}
+          <div class="error-panel animate-in">
+            <h3 class="error-title">Terjadi Kesalahan</h3>
+            <ul class="error-list">
+              {#each validationErrors as err}
+                <li>{err}</li>
+              {/each}
+            </ul>
+          </div>
         {/if}
+
+        <div class="action-row">
+          <button
+            class="btn btn-primary btn-run"
+            on:click={handleSimulate}
+            disabled={simRunning}
+          >
+            {#if simRunning}
+              <div class="spinner"></div>
+              <span>Memproses...</span>
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              <span>Jalankan Simulasi</span>
+            {/if}
+          </button>
+          
+          {#if simRunning}
+            <button
+              class="btn btn-outline btn-cancel"
+              on:click={handleCancel}
+            >
+              Batal
+            </button>
+          {/if}
+        </div>
       </div>
 
       <HistoryPanel on:load={(e) => handleLoadHistory(e.detail)} />
-    </div>
+    </aside>
 
     <!-- MAIN CONTENT: Results -->
-    <div class="main-content">
+    <main class="main-content">
       {#if simRunning}
         <ProgressBar progress={simProgress} estimate={simEstimate} />
       {/if}
 
       {#if simError}
-        <div class="error">{simError}</div>
+        <div class="error-panel error-full animate-in">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <p>{simError}</p>
+        </div>
       {/if}
 
       <ResultsTable results={simResults} {simElapsed} {simRunning} />
-    </div>
+    </main>
   </div>
 </div>
+
+<style>
+  .input-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .action-row {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  .btn-run {
+    flex: 1;
+    height: 48px;
+    font-weight: 700;
+    gap: var(--space-2);
+  }
+
+  .btn-cancel {
+    background: var(--danger-muted);
+    color: var(--danger);
+    border-color: var(--danger-muted);
+  }
+
+  .btn-cancel:hover {
+    background: var(--danger);
+    color: white;
+  }
+
+  .error-panel {
+    background: var(--danger-muted);
+    border: 1px solid var(--danger);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    color: var(--danger);
+  }
+
+  .error-title {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: var(--space-2);
+  }
+
+  .error-list {
+    margin: 0;
+    padding-left: var(--space-5);
+    font-size: var(--text-sm);
+  }
+
+  .error-full {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .error-full p {
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>

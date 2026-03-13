@@ -23,34 +23,30 @@
 <style>
   .navbar {
     display: flex;
-    gap: 1.25rem;
-    margin-bottom: 1.25rem;
+    gap: var(--space-4);
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: var(--space-2);
   }
 
   .nav-link {
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-muted);
     text-decoration: none;
-    padding-bottom: 4px;
-    border-bottom: 2px solid transparent;
-    transition:
-      color 0.2s,
-      border-color 0.2s;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
   }
 
   .nav-link:hover {
     color: var(--text);
+    background: var(--surface-alt);
   }
 
   .nav-link.active {
     color: var(--primary-dark);
-    font-weight: 600;
-    border-bottom-color: var(--primary-dark);
-  }
-
-  :global([data-theme="dark"]) .nav-link.active {
-    color: var(--primary-light);
-    border-bottom-color: var(--primary-light);
+    background: var(--primary-muted);
+    font-weight: 700;
   }
 </style>

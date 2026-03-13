@@ -1,5 +1,6 @@
 <script lang="ts">
   import TopBar from "$lib/components/TopBar.svelte";
+  import Navbar from "$lib/components/Navbar.svelte";
   import { browser } from "$app/environment";
 
   // ── Types ────────────────────────────────────────────────────────────────
@@ -425,43 +426,46 @@
   }
 </script>
 
-<div class="container">
-  <div class="rekon-body">
-    <!-- Upload row (compact) -->
-    <div class="upload-row">
+<div class="container animate-in">
+  <Navbar />
+
+  <div class="rekon-dashboard">
+    <!-- Upload Section -->
+    <div class="upload-grid">
       <!-- Coretax -->
       <div class="upload-card">
-        <div class="upload-card-header">
-          <span class="source-label coretax-label">Coretax</span>
-          <span class="column-hint"
-            >npwp · nama · no faktur · tanggal · dpp · dpp nilai lain · ppn ·
-            referensi</span
-          >
-          <button
-            class="btn-icon"
-            title="Unduh template Coretax"
-            on:click={() => downloadTemplate("coretax")}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+        <header class="card-header">
+          <div class="card-header-main">
+            <div class="step-badge">1</div>
+            <h2 class="card-title">Coretax</h2>
+          </div>
+          <div class="card-header-actions">
+            <button
+              class="btn btn-outline btn-icon-only"
+              title="Unduh template Coretax"
+              on:click={() => downloadTemplate("coretax")}
             >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </button>
-        </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+          </div>
+        </header>
 
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <label
           class="drop-zone"
           class:drag-over={coretaxDragOver}
           class:has-file={coretaxFile !== null && !coretaxProcessing}
@@ -469,6 +473,7 @@
           on:dragover|preventDefault={() => (coretaxDragOver = true)}
           on:dragleave={() => (coretaxDragOver = false)}
           on:drop={onCoretaxDrop}
+          for="coretax-input"
         >
           {#if coretaxProcessing}
             <div class="processing-bar">
@@ -507,53 +512,56 @@
               />
               <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
             </svg>
-            <span class="drop-text">Drag & drop atau klik untuk pilih file</span
-            >
+            <span class="drop-text">Drag & drop di sini</span>
+            <span class="drop-divider">atau</span>
+            <span class="btn btn-outline btn-sm">Pilih File</span>
           {/if}
-          <label class="file-label" for="coretax-input">
-            <input
-              id="coretax-input"
-              type="file"
-              accept=".csv,.txt"
-              on:change={onCoretaxInput}
-              class="file-input"
-            />
-          </label>
-        </div>
+          <input
+            id="coretax-input"
+            type="file"
+            accept=".csv,.txt"
+            on:change={onCoretaxInput}
+            class="file-input"
+          />
+        </label>
 
         {#if coretaxError}<div class="upload-error">{coretaxError}</div>{/if}
       </div>
 
       <!-- Aplikasi Penjualan -->
       <div class="upload-card">
-        <div class="upload-card-header">
-          <span class="source-label app-label">Aplikasi Penjualan</span>
-          <span class="column-hint">no faktur · referensi · dpp · ppn</span>
-          <button
-            class="btn-icon"
-            title="Unduh template Aplikasi Penjualan"
-            on:click={() => downloadTemplate("app")}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+        <header class="card-header">
+          <div class="card-header-main">
+            <div class="step-badge">2</div>
+            <h2 class="card-title">Aplikasi Penjualan</h2>
+          </div>
+          <div class="card-header-actions">
+            <button
+              class="btn btn-outline btn-icon-only"
+              title="Unduh template Aplikasi Penjualan"
+              on:click={() => downloadTemplate("app")}
             >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </button>
-        </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+          </div>
+        </header>
 
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <label
           class="drop-zone"
           class:drag-over={appDragOver}
           class:has-file={appFile !== null && !appProcessing}
@@ -561,6 +569,7 @@
           on:dragover|preventDefault={() => (appDragOver = true)}
           on:dragleave={() => (appDragOver = false)}
           on:drop={onAppDrop}
+          for="app-input"
         >
           {#if appProcessing}
             <div class="processing-bar">
@@ -599,19 +608,18 @@
               />
               <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
             </svg>
-            <span class="drop-text">Drag & drop atau klik untuk pilih file</span
-            >
+            <span class="drop-text">Drag & drop di sini</span>
+            <span class="drop-divider">atau</span>
+            <span class="btn btn-outline btn-sm">Pilih File</span>
           {/if}
-          <label class="file-label" for="app-input">
-            <input
-              id="app-input"
-              type="file"
-              accept=".csv,.txt"
-              on:change={onAppInput}
-              class="file-input"
-            />
-          </label>
-        </div>
+          <input
+            id="app-input"
+            type="file"
+            accept=".csv,.txt"
+            on:change={onAppInput}
+            class="file-input"
+          />
+        </label>
 
         {#if appError}<div class="upload-error">{appError}</div>{/if}
       </div>
@@ -1240,158 +1248,188 @@
 
 <style>
   /* ── Layout ──────────────────────────────────────────────────────────── */
-  .rekon-body {
-    flex: 1;
+  .rekon-dashboard {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    min-height: 0;
-    overflow: hidden;
+    gap: var(--space-6);
   }
 
-  /* ── Upload row (compact) ──────────────────────────────────────────── */
-  .upload-row {
+  .upload-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    flex-shrink: 0;
+    gap: var(--space-4);
   }
 
   .upload-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    box-shadow: var(--shadow-sm);
   }
 
-  .upload-card-header {
+  .card-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
   }
 
   .source-label {
-    font-size: 0.72rem;
+    font-size: var(--text-xs);
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    white-space: nowrap;
-    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
   }
+
   .coretax-label {
-    background: rgba(217, 119, 6, 0.12);
+    background: var(--primary-muted);
     color: var(--primary-dark);
   }
+
   .app-label {
-    background: rgba(5, 150, 105, 0.1);
-    color: var(--success);
+    background: oklch(90% 0.1 160);
+    color: oklch(40% 0.15 160);
   }
 
-  .column-hint {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-  }
 
-  /* Template download icon button */
-  .btn-icon {
-    width: 26px;
-    height: 26px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg-card);
-    color: var(--text-muted);
-    cursor: pointer;
+  .drop-zone {
+    height: 160px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    transition:
-      color 0.2s,
-      border-color 0.2s,
-      background 0.2s;
-  }
-  .btn-icon:hover {
-    color: var(--primary);
-    border-color: var(--primary);
-    background: rgba(217, 119, 6, 0.05);
+    padding: var(--space-4);
+    border: 2px dashed var(--border);
+    margin: var(--space-4);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    gap: var(--space-1);
   }
 
-  /* ── Drop zone (compact) ─────────────────────────────────────────── */
-  .drop-zone {
-    position: relative;
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 0.7rem 1rem;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.6rem;
-    cursor: pointer;
-    transition:
-      border-color 0.2s,
-      background 0.2s;
-    background: var(--bg-card);
-    min-height: 56px;
+  .drop-zone:hover {
+    border-color: var(--primary);
+    background: var(--surface-alt);
   }
-  .drop-zone:hover,
+
   .drop-zone.drag-over {
     border-color: var(--primary);
-    background: rgba(217, 119, 6, 0.04);
+    background: var(--primary-muted);
   }
+
   .drop-zone.has-file {
     border-style: solid;
-    border-color: var(--border);
-  }
-  .drop-zone.is-loading {
-    flex-direction: column;
-    gap: 0.4rem;
-    padding: 0.6rem 1rem;
-    cursor: default;
+    border-color: var(--primary-dark);
+    background: var(--primary-muted);
   }
 
-  .file-label {
-    position: absolute;
-    inset: 0;
-    cursor: pointer;
-  }
-  .file-input {
-    display: none;
-  }
-
-  .upload-icon {
-    width: 20px;
-    height: 20px;
+  .drop-divider {
+    font-size: 10px;
     color: var(--text-muted);
-    opacity: 0.4;
-    flex-shrink: 0;
   }
-  .file-icon {
-    width: 18px;
-    height: 18px;
-    color: var(--primary);
-    flex-shrink: 0;
+
+  .btn-sm {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-xs);
+  }
+
+  .upload-icon, .file-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--text-muted);
   }
 
   .drop-text {
-    font-size: 0.8rem;
+    font-size: var(--text-xs);
     color: var(--text-muted);
+    text-align: center;
   }
+
   .file-name {
-    font-size: 0.82rem;
-    font-weight: 600;
+    font-size: var(--text-sm);
+    font-weight: 700;
     color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
   }
+
   .file-count {
-    font-size: 0.75rem;
+    font-size: 10px;
+    color: var(--primary-dark);
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .upload-error {
+    font-size: var(--text-xs);
+    color: var(--danger);
+    background: var(--danger-muted);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-4);
+    margin: 0 var(--space-4) var(--space-4) var(--space-4);
+  }
+
+  .summary-bar {
+    display: flex;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    align-items: center;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .stat-pill {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-2) var(--space-4);
+    border-right: 1px solid var(--border);
+    gap: 4px;
+  }
+  .upload-card {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step-badge {
+    width: 20px;
+    height: 20px;
+    background: var(--primary);
+    color: var(--text-on-primary);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .card-title {
+    font-size: var(--text-xs);
+    white-space: nowrap;
+  }
+
+  .file-count {
+    font-size: var(--text-xs);
     color: var(--success);
     font-weight: 500;
     margin-left: auto;
@@ -1423,7 +1461,7 @@
   }
 
   .upload-error {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--danger);
     background: rgba(220, 38, 38, 0.08);
     border-radius: 6px;
@@ -1449,7 +1487,7 @@
     min-width: 72px;
   }
   .stat-label {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -1495,111 +1533,46 @@
   .rekon-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8125rem;
+    font-size: var(--text-sm);
     table-layout: auto;
   }
 
-  .rekon-table thead th {
-    background: var(--bg-card); /* solid, not transparent */
-    font-size: 0.7rem;
+  .rekon-table th {
+    background: var(--surface-alt);
+    font-size: var(--text-xs);
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
     color: var(--text-muted);
-    padding: 0.55rem 0.75rem;
+    padding: var(--space-3) var(--space-4);
     position: sticky;
     top: 0;
     z-index: 2;
-    white-space: nowrap;
     text-align: right;
-    border-bottom: 2px solid var(--border);
-    /* Prevent bleed-through on scroll */
-    box-shadow: 0 1px 0 var(--border);
-  }
-  .ref-th {
-    text-align: left !important;
-  }
-
-  .coretax-col {
-    border-bottom-color: rgba(217, 119, 6, 0.4) !important;
-  }
-  .app-col {
-    border-bottom-color: rgba(5, 150, 105, 0.35) !important;
-  }
-  .selisih-col {
-    border-bottom-color: rgba(220, 38, 38, 0.3) !important;
+    border-bottom: 2px solid var(--border-strong);
   }
 
   .rekon-table td {
-    padding: 0.45rem 0.75rem;
+    padding: var(--space-2) var(--space-4);
     border-bottom: 1px solid var(--border);
-    white-space: nowrap;
     text-align: right;
-  }
-
-  /* Referensi cell */
-  .ref-cell {
-    text-align: left !important;
-  }
-  .cell-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.4rem;
-  }
-  .ref-text {
-    font-weight: 500;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-  }
-
-  /* Copy button */
-  .btn-copy {
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 4px;
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 22px;
-    min-width: 22px;
-    flex-shrink: 0;
-    opacity: 0;
-  }
-  tr:hover .btn-copy {
-    opacity: 1;
-  }
-  .btn-copy:hover {
-    color: var(--primary);
-    background: rgba(251, 191, 36, 0.1);
-  }
-  .btn-copy.copied {
-    opacity: 1;
-    color: var(--success);
-    background: transparent;
   }
 
   .num-col {
     font-variant-numeric: tabular-nums;
+    font-weight: 500;
   }
-  .selisih-cell {
-    color: var(--text-muted);
-  }
+
   .selisih-nonzero {
     color: var(--danger);
-    font-weight: 600;
+    font-weight: 700;
   }
-  .row-diff {
-    background: rgba(220, 38, 38, 0.025);
-  }
+
   tr:hover {
-    background: rgba(251, 191, 36, 0.05);
+    background: var(--surface-alt);
+  }
+
+  tr.row-diff {
+    background: var(--danger-muted);
   }
 
   /* ── Waiting hint ──────────────────────────────────────────────────────── */
@@ -1609,95 +1582,81 @@
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
   }
 
   /* ── Filter bar ──────────────────────────────────────────────────────── */
   .filter-bar {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    padding: 1rem 1rem 0.6rem 1rem;
-    position: relative;
-    z-index: 3;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-alt);
   }
 
   .search-wrap {
     position: relative;
     display: flex;
     align-items: center;
-    flex-shrink: 0;
+    flex: 1;
   }
+
   .search-icon {
     position: absolute;
-    left: 0.55rem;
+    left: var(--space-3);
     color: var(--text-muted);
-    pointer-events: none;
   }
+
   .search-input {
-    width: 200px;
-    padding: 0.35rem 2rem 0.35rem 1.9rem;
+    width: 100%;
+    padding: var(--space-2) var(--space-10) var(--space-2) var(--space-8);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
     color: var(--text);
-    font-size: 0.8rem;
-    transition: border-color 0.2s;
+    font-size: var(--text-sm);
+    transition: var(--transition);
   }
+
   .search-input:focus {
     outline: none;
     border-color: var(--primary);
-  }
-  .search-clear {
-    position: absolute;
-    right: 0.4rem;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    padding: 2px;
-    border-radius: 3px;
-  }
-  .search-clear:hover {
-    color: var(--danger);
+    box-shadow: 0 0 0 3px var(--primary-muted);
   }
 
   .filter-chips {
     display: flex;
-    gap: 0.3rem;
-    flex-wrap: wrap;
+    gap: var(--space-2);
   }
+
   .chip {
-    padding: 0.25rem 0.7rem;
-    border-radius: 999px;
+    padding: var(--space-1) var(--space-4);
+    border-radius: var(--radius-full);
     border: 1px solid var(--border);
-    background: transparent;
+    background: var(--surface);
     color: var(--text-muted);
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
+    transition: var(--transition);
   }
+
   .chip:hover {
     border-color: var(--primary);
     color: var(--primary);
   }
+
   .chip.chip-active {
-    background: rgba(217, 119, 6, 0.12);
+    background: var(--primary-muted);
     border-color: var(--primary);
     color: var(--primary-dark);
-    font-weight: 600;
   }
 
   .filter-count {
-    margin-left: auto;
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--text-muted);
-    white-space: nowrap;
+    font-weight: 600;
   }
 
   /* ── Sortable headers ────────────────────────────────────────────────── */
@@ -1717,7 +1676,7 @@
     margin-right: 0.25rem;
   }
   .sort-icon {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     opacity: 0.3;
     vertical-align: middle;
   }
@@ -1729,7 +1688,7 @@
   .empty-row {
     text-align: center !important;
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     padding: 2rem 0 !important;
   }
 
@@ -1737,85 +1696,50 @@
   .dialog-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
+    background: oklch(0% 0 0 / 0.4);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
-    padding: 1rem;
-    animation: fadeIn 0.15s ease-out;
+    z-index: 1000;
+    padding: var(--space-4);
   }
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
+
   .dialog-content {
-    background: var(--bg-card);
+    background: var(--surface);
     width: 100%;
-    max-width: 900px;
+    max-width: 1000px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    border-radius: 12px;
-    box-shadow:
-      0 20px 25px -5px rgba(0, 0, 0, 0.1),
-      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-strong);
     overflow: hidden;
-    animation: slideUp 0.15s ease-out;
   }
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+
   .dialog-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.25rem 1.5rem;
+    padding: var(--space-4) var(--space-6);
+    background: var(--surface-alt);
     border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
   }
+
   .dialog-title {
     margin: 0;
-    font-size: 1.15rem;
-    font-weight: 600;
+    font-size: var(--text-base);
+    font-weight: 800;
   }
-  .dialog-title .text-primary {
-    color: var(--primary);
-  }
-  .dialog-close {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0.4rem;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition:
-      background-color 0.2s,
-      color 0.2s;
-  }
-  .dialog-close:hover {
-    background: var(--border);
-    color: var(--text);
-  }
+
   .dialog-body {
-    padding: 1.5rem;
+    padding: var(--space-6);
     overflow-y: auto;
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
   }
   .dialog-section-header {
     display: flex;
@@ -1825,7 +1749,7 @@
     flex-wrap: wrap;
   }
   .dialog-section-summary {
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     color: var(--text-muted);
     font-weight: 500;
   }
@@ -1837,7 +1761,7 @@
   .detail-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8125rem;
+    font-size: var(--text-sm);
   }
   .detail-table th {
     background: rgba(0, 0, 0, 0.02);
@@ -1863,7 +1787,7 @@
     padding: 1rem;
     text-align: center;
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     background: rgba(0, 0, 0, 0.015);
     border: 1px dashed var(--border);
     border-radius: 8px;
@@ -1882,16 +1806,20 @@
     align-items: flex-start;
     gap: 0.75rem;
     color: var(--danger);
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
+  }
+
+  .file-input {
+    display: none;
   }
 
   /* ── Responsive ─────────────────────────────────────────────────────── */
   @media (max-width: 768px) {
-    .upload-row {
+    .upload-grid {
       grid-template-columns: 1fr;
     }
     .search-input {
-      width: 140px;
+      width: 100%;
     }
     .dialog-content {
       max-height: 95vh;

@@ -52,43 +52,43 @@
   }
 </script>
 
-<div class="card">
-  <h2
-    class="card-title"
-    style="display: flex; align-items: center; gap: 0.5rem;"
-  >
-    <span>Hasil Pencarian ({results.length})</span>
-    {#if simElapsed > 0}
-      <span
-        style="font-weight: normal; font-size: 0.75rem; color: var(--text-muted);"
-      >
-        dalam {formatElapsed(simElapsed)}
-      </span>
-    {/if}
+<div class="card results-card animate-in">
+  <header class="card-header">
+    <div class="card-header-main">
+      <h2 class="card-title">Hasil Pencarian</h2>
+      <span class="results-count">{results.length} temuan</span>
+      {#if simElapsed > 0}
+        <span class="elapsed-time">dalam {formatElapsed(simElapsed)}</span>
+      {/if}
+    </div>
+    
     {#if results.length > 0}
-      <button
-        class="btn btn-sm btn-outline"
-        style="margin-left: auto; font-size: 0.75rem;"
-        on:click={() => exportResultsToCsv(results)}
-        title="Export ke CSV (Ctrl+E)"
-      >
-        ⬇ CSV
-      </button>
+      <div class="card-header-actions">
+        <button
+          class="btn btn-outline btn-export"
+          on:click={() => exportResultsToCsv(results)}
+          title="Export ke CSV (Ctrl+E)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Export</span>
+        </button>
+      </div>
     {/if}
-  </h2>
+  </header>
+
   {#if results.length > 0}
-    <div style="flex: 1; overflow: auto; min-height: 0;">
+    <div class="table-container">
       <table>
         <thead>
           <tr>
             <th>#</th>
-            <th>Harga</th>
-            <th>Qty</th>
+            <th>Harga Satuan</th>
+            <th>Kuantitas</th>
             <th>Potongan</th>
             <th>DPP Nilai Lain</th>
             <th>PPN</th>
             <th>Selisih</th>
-            <th style="text-align: center;">Kualitas</th>
+            <th class="text-center">Kualitas</th>
           </tr>
         </thead>
         <tbody>
@@ -98,168 +98,68 @@
             <tr
               class:selected={selectedRowIndex === i}
               on:click={() => (selectedRowIndex = i)}
-              style="cursor: pointer;"
             >
-              <td
-                ><span class="badge badge-rank"
-                  >{(currentPage - 1) * itemsPerPage + i + 1}</span
-                ></td
-              >
               <td>
-                <div class="cell-content">
-                  {formatRupiah(result.transaction.unitPrice)}
+                <span class="rank-badge">{(currentPage - 1) * itemsPerPage + i + 1}</span>
+              </td>
+              <td>
+                <div class="cell-with-copy">
+                  <span class="monospaced">{formatRupiah(result.transaction.unitPrice)}</span>
                   <button
                     class="btn-copy"
                     class:copied={copiedId === `price-${i}`}
-                    on:click|stopPropagation={() =>
-                      copyToClipboard(
-                        formatValueForCopy(result.transaction.unitPrice),
-                        `price-${i}`,
-                        i,
-                      )}
+                    on:click|stopPropagation={() => copyToClipboard(formatValueForCopy(result.transaction.unitPrice), `price-${i}`, i)}
                     title="Salin Harga"
                   >
                     {#if copiedId === `price-${i}`}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><polyline points="20 6 9 17 4 12"></polyline></svg
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     {:else}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"
-                        ></rect><path
-                          d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                        ></path></svg
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     {/if}
                   </button>
                 </div>
               </td>
-              <td>{formatNumber(result.transaction.quantity)}</td>
+              <td class="monospaced">{formatNumber(result.transaction.quantity)}</td>
               <td>
-                <div class="cell-content">
-                  {formatRupiah(result.transaction.discount)}
+                <div class="cell-with-copy">
+                  <span class="monospaced">{formatRupiah(result.transaction.discount)}</span>
                   <button
                     class="btn-copy"
                     class:copied={copiedId === `discount-${i}`}
-                    on:click|stopPropagation={() =>
-                      copyToClipboard(
-                        formatValueForCopy(result.transaction.discount),
-                        `discount-${i}`,
-                        i,
-                      )}
+                    on:click|stopPropagation={() => copyToClipboard(formatValueForCopy(result.transaction.discount), `discount-${i}`, i)}
                     title="Salin Potongan"
                   >
                     {#if copiedId === `discount-${i}`}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><polyline points="20 6 9 17 4 12"></polyline></svg
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     {:else}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"
-                        ></rect><path
-                          d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                        ></path></svg
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     {/if}
                   </button>
                 </div>
               </td>
               <td>
-                <div class="cell-content">
-                  {formatRupiah(result.metadata.dppNilaiLain)}
+                <div class="cell-with-copy">
+                  <span class="monospaced">{formatRupiah(result.metadata.dppNilaiLain)}</span>
                   <button
                     class="btn-copy"
                     class:copied={copiedId === `dpp-${i}`}
-                    on:click|stopPropagation={() =>
-                      copyToClipboard(
-                        formatValueForCopy(result.metadata.dppNilaiLain),
-                        `dpp-${i}`,
-                        i,
-                      )}
+                    on:click|stopPropagation={() => copyToClipboard(formatValueForCopy(result.metadata.dppNilaiLain), `dpp-${i}`, i)}
                     title="Salin DPP Nilai Lain"
                   >
                     {#if copiedId === `dpp-${i}`}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><polyline points="20 6 9 17 4 12"></polyline></svg
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     {:else}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"
-                        ></rect><path
-                          d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                        ></path></svg
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     {/if}
                   </button>
                 </div>
               </td>
-              <td>{formatRupiah(result.calculatedPpn)}</td>
-              <td>{formatRupiah(result.ppnDifference)}</td>
-              <td style="text-align: center;">
-                <div
-                  class="accuracy-badge"
-                  style="background: {result.humanScore?.color || '#9ca3af'}"
-                >
-                  <span class="accuracy-pct"
-                    >{result.humanScore?.accuracy ?? 0}%</span
-                  >
-                  <span class="accuracy-label"
-                    >{result.humanScore?.label || "Mendekati"}</span
-                  >
+              <td class="monospaced">{formatRupiah(result.calculatedPpn)}</td>
+              <td class="monospaced highlight-diff">{formatRupiah(result.ppnDifference)}</td>
+              <td>
+                <div class="accuracy-indicator" style="--accuracy-color: {result.humanScore?.color || 'var(--text-muted)'}">
+                  <div class="accuracy-bar-bg"><div class="accuracy-bar" style="width: {result.humanScore?.accuracy ?? 0}%"></div></div>
+                  <span class="accuracy-text">{result.humanScore?.label || "Mendekati"}</span>
                 </div>
               </td>
             </tr>
@@ -268,105 +168,217 @@
       </table>
     </div>
 
-    <!-- Pagination Controls -->
     {#if totalPages > 1}
-      <div
-        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid var(--border);"
-      >
-        <button
-          class="btn btn-sm btn-outline"
-          disabled={currentPage === 1}
-          on:click={() => changePage(currentPage - 1)}
-        >
-          &laquo; Sebelumnya
+      <footer class="table-footer">
+        <button class="btn btn-outline btn-icon" disabled={currentPage === 1} on:click={() => changePage(currentPage - 1)}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <span>Sebelumnya</span>
         </button>
-        <span style="font-size: 0.875rem; color: var(--text-muted);">
-          Halaman {currentPage} dari {totalPages}
-        </span>
-        <button
-          class="btn btn-sm btn-outline"
-          disabled={currentPage === totalPages}
-          on:click={() => changePage(currentPage + 1)}
-        >
-          Selanjutnya &raquo;
+        <div class="pagination-info">
+          Halaman <span class="current">{currentPage}</span> dari <span class="total">{totalPages}</span>
+        </div>
+        <button class="btn btn-outline btn-icon" disabled={currentPage === totalPages} on:click={() => changePage(currentPage + 1)}>
+          <span>Selanjutnya</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
-      </div>
+      </footer>
     {/if}
   {:else if !simRunning}
-    <div
-      style="display: flex; align-items: center; justify-content: center; padding: 3rem 0; color: var(--text-muted);"
-    >
-      Silakan jalankan simulasi untuk melihat hasil.
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+      </div>
+      <p>Silakan jalankan simulasi untuk melihat hasil.</p>
     </div>
   {/if}
 </div>
 
 <style>
-  .cell-content {
+  .results-card {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    flex-direction: column;
+    min-height: 0;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
-  .btn-copy {
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 6px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    transition: all 0.2s;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
-  }
-
-  .btn-copy:hover {
+  .results-count {
+    font-size: var(--text-xs);
+    font-weight: 600;
     color: var(--primary);
-    background: rgba(251, 191, 36, 0.1);
+    background: var(--primary-muted);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
   }
 
-  .btn-copy.copied {
-    background: transparent;
-    color: var(--success);
+  .elapsed-time {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-family: inherit;
+  }
+
+  .btn-export {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-xs);
+  }
+
+  .table-container {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+  }
+
+  table {
+    border-spacing: 0;
+    width: 100%;
+  }
+
+  th {
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-xs);
+    border-bottom: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tr:hover {
+    background: var(--surface-alt);
   }
 
   tr.selected {
-    background: rgba(217, 119, 6, 0.06);
-    box-shadow: inset 3px 0 0 var(--primary);
+    background: var(--primary-muted);
   }
 
-  :global([data-theme="dark"]) tr.selected {
-    background: rgba(245, 158, 11, 0.12);
+  .monospaced {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
   }
 
-  .accuracy-badge {
-    display: inline-flex;
+  .highlight-diff {
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+
+  .text-center { text-align: center; }
+
+  .rank-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--border-strong);
+    color: var(--text-muted);
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .cell-with-copy {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .btn-copy {
+    opacity: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-muted);
+  }
+
+  tr:hover .btn-copy {
+    opacity: 1;
+  }
+
+  .btn-copy:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--surface);
+  }
+
+  .btn-copy.copied {
+    opacity: 1;
+    color: var(--success);
+    border-color: var(--success);
+  }
+
+  .accuracy-indicator {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 100px;
+  }
+
+  .accuracy-bar-bg {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .accuracy-bar {
+    height: 100%;
+    background: var(--accuracy-color);
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .accuracy-text {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .table-footer {
+    padding: var(--space-4) var(--space-6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface-alt);
+    border-top: 1px solid var(--border);
+  }
+
+  .pagination-info {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+
+  .pagination-info .current {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .empty-state {
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2px 8px;
-    border-radius: 6px;
-    color: white;
-    min-width: 80px;
-    line-height: 1.2;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    padding: var(--space-16) 0;
+    color: var(--text-muted);
+    gap: var(--space-4);
   }
 
-  .accuracy-pct {
-    font-weight: bold;
-    font-size: 0.875rem;
-  }
-
-  .accuracy-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    opacity: 0.9;
+  .empty-icon {
+    opacity: 0.3;
   }
 </style>

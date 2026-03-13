@@ -72,25 +72,23 @@
 
 <style>
   .theme-toggle {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: none;
-    background: var(--bg-card);
-    color: var(--text);
-    font-size: 1.25rem;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-muted);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition:
-      transform 0.2s,
-      box-shadow 0.2s;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
   }
 
   .theme-toggle:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--primary-muted);
   }
 </style>

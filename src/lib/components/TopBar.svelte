@@ -13,24 +13,25 @@
 
 <div class="top-bar-wrapper">
   <div class="top-bar">
-    <!-- Logo Left -->
-    <div class="top-bar-logo">
-      <a href="/" class="logo-text">Demivio</a>
+    <div class="brand">
+      <h1 class="brand-name">Demivio</h1>
+      <p class="brand-tagline">Simulator PPN & Rekonsiliasi Pajak</p>
     </div>
 
-    <!-- Navigation Center -->
+    <!-- Navigation Center - Preserving new feature -->
     <nav class="nav-links">
       {#each navLinks as link}
         <a
           href={link.href}
           class="nav-link"
-          class:active={$page.url.pathname.startsWith(link.href)}
+          class:active={$page.url.pathname.startsWith(link.href) || ($page.url.pathname === '/' && link.href === '/kalkulator')}
         >
           {link.label}
         </a>
       {/each}
     </nav>
-    <div class="top-bar-actions">
+
+    <div class="utility-icons">
       <button
         class="icon-btn help-btn"
         on:click={onHelpClick}
@@ -88,49 +89,48 @@
 
 <style>
   .top-bar-wrapper {
-    position: fixed;
+    position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
     z-index: 100;
-    pointer-events: none; /* Let clicks pass through empty space */
     display: flex;
     justify-content: center;
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
   }
 
   .top-bar {
     width: 100%;
-    max-width: none;
-    padding: 0.5rem 2rem;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 0.75rem;
-    pointer-events: auto; /* Re-enable clicks on the bar itself */
-    transition: background 0.3s, border-color 0.3s;
-  }
-
-  .top-bar-logo {
+    max-width: 1400px;
+    padding: var(--space-3) var(--space-6);
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: flex-start;
+    pointer-events: auto;
   }
 
-  .logo-text {
-    font-size: 1.25rem;
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+
+  .brand-name {
+    font-size: var(--text-lg);
     font-weight: 800;
-    color: var(--primary-dark);
-    text-decoration: none;
     letter-spacing: -0.02em;
+    color: var(--primary-dark);
+    margin: 0;
+    line-height: 1;
   }
 
-  :global([data-theme="dark"]) .logo-text {
-    color: var(--primary-light);
+  .brand-tagline {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin: 0;
+    font-weight: 500;
   }
 
+  /* Navigation Styles - Preserving new feature UI structure but matching local theme */
   .nav-links {
     display: flex;
     align-items: center;
@@ -144,57 +144,51 @@
     font-weight: 500;
     color: var(--text-muted);
     text-decoration: none;
-    transition: color 0.2s, background 0.2s;
+    transition: var(--transition);
     white-space: nowrap;
   }
 
   .nav-link:hover {
     color: var(--text);
-    background: var(--bg-card);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
   }
 
   .nav-link.active {
     color: var(--primary-dark);
-    background: var(--bg-card);
+    background: var(--surface);
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
   }
 
-  :global([data-theme="dark"]) .nav-link.active {
-    color: var(--primary-light);
-  }
-
-  .top-bar-actions {
+  .utility-icons {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 0.75rem;
+    gap: var(--space-3);
   }
 
   .icon-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: none;
-    background: var(--bg-card);
-    color: var(--text);
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-muted);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition:
-      transform 0.2s,
-      box-shadow 0.2s,
-      color 0.2s;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
     text-decoration: none;
   }
 
   .icon-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     color: var(--primary);
+    border-color: var(--primary);
+    background: var(--primary-muted);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
   }
 
   .icon-btn svg {
@@ -202,16 +196,21 @@
     height: 20px;
   }
 
-  /* Override internal absolute positioning for ThemeToggle within wrapper */
-  :global(.top-bar .theme-toggle) {
-    position: static;
-    bottom: auto;
-    right: auto;
+  .theme-toggle-wrapper :global(.theme-toggle) {
+    box-shadow: var(--shadow-sm);
   }
 
-  /* We also need to apply the hover state for children of top-bar */
-  :global(.top-bar .theme-toggle:hover) {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  .theme-toggle-wrapper :global(.theme-toggle:hover) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  @media (max-width: 640px) {
+    .brand-tagline {
+      display: none;
+    }
+    .nav-links {
+      display: none; /* Hide nav on mobile to keep it clean, same as remote's probable intent */
+    }
   }
 </style>
