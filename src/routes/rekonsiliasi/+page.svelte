@@ -22,10 +22,19 @@
   }
   interface RekonRow {
     referensi: string;
+    // Coretax
+    npwp: string;
+    nama: string;
+    noFaktur: string;
+    tanggal: string;
     dppCoretax: number | null;
+    dppNilaiLainCoretax: number | null;
     ppnCoretax: number | null;
+    // App
+    noFakturApp: string;
     dppApp: number | null;
     ppnApp: number | null;
+    // Difference
     selisihDpp: number;
     selisihPpn: number;
   }
@@ -257,33 +266,76 @@
 
   // ── Reconciliation ────────────────────────────────────────────────────────
   function reconcile(ct: CoretaxRow[], app: AppRow[]): RekonRow[] {
-    const ctMap = new Map<string, { dpp: number; ppn: number }>();
+    const ctMap = new Map<
+      string,
+      {
+        dpp: number;
+        ppn: number;
+        dppNL: number;
+        npwps: Set<string>;
+        namas: Set<string>;
+        noFakturs: Set<string>;
+        tanggals: Set<string>;
+      }
+    >();
     for (const r of ct) {
-      const e = ctMap.get(r.referensi);
-      if (e) {
-        e.dpp += r.dpp;
-        e.ppn += r.ppn;
-      } else ctMap.set(r.referensi, { dpp: r.dpp, ppn: r.ppn });
+      let e = ctMap.get(r.referensi);
+      if (!e) {
+        e = {
+          dpp: 0,
+          ppn: 0,
+          dppNL: 0,
+          npwps: new Set(),
+          namas: new Set(),
+          noFakturs: new Set(),
+          tanggals: new Set(),
+        };
+        ctMap.set(r.referensi, e);
+      }
+      e.dpp += r.dpp;
+      e.ppn += r.ppn;
+      e.dppNL += r.dppNilaiLain;
+      if (r.npwp) e.npwps.add(r.npwp);
+      if (r.nama) e.namas.add(r.nama);
+      if (r.noFaktur) e.noFakturs.add(r.noFaktur);
+      if (r.tanggal) e.tanggals.add(r.tanggal);
     }
-    const appMap = new Map<string, { dpp: number; ppn: number }>();
+
+    const appMap = new Map<
+      string,
+      { dpp: number; ppn: number; noFakturs: Set<string> }
+    >();
     for (const r of app) {
-      const e = appMap.get(r.referensi);
-      if (e) {
-        e.dpp += r.dpp;
-        e.ppn += r.ppn;
-      } else appMap.set(r.referensi, { dpp: r.dpp, ppn: r.ppn });
+      let e = appMap.get(r.referensi);
+      if (!e) {
+        e = { dpp: 0, ppn: 0, noFakturs: new Set() };
+        appMap.set(r.referensi, e);
+      }
+      e.dpp += r.dpp;
+      e.ppn += r.ppn;
+      if (r.noFakturApp) e.noFakturs.add(r.noFakturApp);
     }
+
     const allKeys = new Set([...ctMap.keys(), ...appMap.keys()]);
     const rows: RekonRow[] = [];
     for (const key of allKeys) {
-      const ctVal = ctMap.get(key) ?? null;
-      const appVal = appMap.get(key) ?? null;
+      const ctVal = ctMap.get(key);
+      const appVal = appMap.get(key);
+
       rows.push({
         referensi: key,
+        npwp: Array.from(ctVal?.npwps || []).join(", "),
+        nama: Array.from(ctVal?.namas || []).join(", "),
+        noFaktur: Array.from(ctVal?.noFakturs || []).join(", "),
+        tanggal: Array.from(ctVal?.tanggals || []).join(", "),
         dppCoretax: ctVal?.dpp ?? null,
+        dppNilaiLainCoretax: ctVal?.dppNL ?? null,
         ppnCoretax: ctVal?.ppn ?? null,
+
+        noFakturApp: Array.from(appVal?.noFakturs || []).join(", "),
         dppApp: appVal?.dpp ?? null,
         ppnApp: appVal?.ppn ?? null,
+
         selisihDpp: (ctVal?.dpp ?? 0) - (appVal?.dpp ?? 0),
         selisihPpn: (ctVal?.ppn ?? 0) - (appVal?.ppn ?? 0),
       });
@@ -400,27 +452,49 @@
 
   // ── Export ────────────────────────────────────────────────────────────────
   function exportCsv() {
+    const headers = [
+      "Referensi",
+      "NPWP",
+      "Nama",
+      "No Faktur Coretax",
+      "Tanggal Coretax",
+      "DPP Coretax",
+      "DPP Nilai Lain Coretax",
+      "PPN Coretax",
+      "No Faktur Aplikasi",
+      "DPP Aplikasi",
+      "PPN Aplikasi",
+      "Selisih DPP",
+      "Selisih PPN",
+    ];
+
     const lines = [
-      "Referensi;DPP Coretax;PPN Coretax;DPP Aplikasi;PPN Aplikasi;Selisih DPP;Selisih PPN",
+      headers.join(";"),
       ...rekonRows.map((r) =>
         [
           r.referensi,
-          r.dppCoretax ?? "",
-          r.ppnCoretax ?? "",
-          r.dppApp ?? "",
-          r.ppnApp ?? "",
+          r.npwp,
+          r.nama,
+          r.noFaktur,
+          r.tanggal,
+          r.dppCoretax ?? 0,
+          r.dppNilaiLainCoretax ?? 0,
+          r.ppnCoretax ?? 0,
+          r.noFakturApp,
+          r.dppApp ?? 0,
+          r.ppnApp ?? 0,
           r.selisihDpp,
           r.selisihPpn,
         ].join(";"),
       ),
     ];
-    const blob = new Blob([lines.join("\n")], {
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], {
       type: "text/csv;charset=utf-8;",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "rekonsiliasi.csv";
+    a.download = "rekonsiliasi_lengkap.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
