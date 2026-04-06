@@ -21,40 +21,81 @@ export const fileSizeLabel = (b: number): string => {
 export const toCSV = (data: BppuData, fileName: string): string => {
   const esc = (v: string | number | null | undefined) =>
     `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+  const headers = [
+    'File',
+    'Nomor BPPU',
+    'Masa Pajak',
+    'Sifat Pemotongan',
+    'Status Bukti Pemotongan',
+    'NPWP/NIK Penerima',
+    'Nama Penerima',
+    'NITKU Penerima',
+    'Jenis Fasilitas',
+    'Jenis PPh',
+    'Kode Objek Pajak',
+    'Nama Objek Pajak',
+    'DPP (Rp)',
+    'Tarif (%)',
+    'PPh (Rp)',
+    'Jenis Dokumen Dasar',
+    'Tanggal Dokumen Dasar',
+    'Nomor Dokumen Dasar',
+    'Nomor SP2D',
+    'NPWP/NIK Pemotong',
+    'NITKU Pemotong',
+    'Nama Pemotong',
+    'Tanggal Bukti',
+    'Nama Penandatangan'
+  ];
+
   const rows: string[] = [];
-  rows.push(['File', 'Seksi', 'Field', 'Nilai'].map(esc).join(','));
+  rows.push(headers.map(esc).join(';'));
 
-  const push = (sec: string, key: string, val: string | number | null | undefined) =>
-    rows.push([fileName, sec, key, val].map(esc).join(','));
+  const commonData = [
+    fileName,
+    data.header?.nomor,
+    data.header?.masa_pajak,
+    data.header?.sifat_pemotongan,
+    data.header?.status_bukti_pemotongan,
+    data.penerima?.npwp_nik,
+    data.penerima?.nama,
+    data.penerima?.nitku,
+    data.pemotongan?.jenis_fasilitas,
+    data.pemotongan?.jenis_pph
+  ];
 
-  push('Header', 'Nomor', data.header?.nomor);
-  push('Header', 'Masa Pajak', data.header?.masa_pajak);
-  push('Header', 'Sifat Pemotongan', data.header?.sifat_pemotongan);
-  push('Header', 'Status Bukti Pemotongan', data.header?.status_bukti_pemotongan);
-  push('Penerima', 'NPWP/NIK', data.penerima?.npwp_nik);
-  push('Penerima', 'Nama', data.penerima?.nama);
-  push('Penerima', 'NITKU', data.penerima?.nitku);
-  push('Pemotongan', 'Jenis Fasilitas', data.pemotongan?.jenis_fasilitas);
-  push('Pemotongan', 'Jenis PPh', data.pemotongan?.jenis_pph);
+  const trailingData = [
+    data.pemotongan?.dokumen_dasar?.jenis_dokumen,
+    data.pemotongan?.dokumen_dasar?.tanggal_dokumen,
+    data.pemotongan?.dokumen_dasar?.nomor_dokumen,
+    data.pemotongan?.nomor_sp2d,
+    data.pemotong?.npwp_nik,
+    data.pemotong?.nitku,
+    data.pemotong?.nama_pemotong,
+    data.pemotong?.tanggal,
+    data.pemotong?.nama_penandatangan
+  ];
 
-  (data.pemotongan?.objek_pajak || []).forEach((op, i) => {
-    const prefix = `Objek Pajak ${i + 1}`;
-    push(prefix, 'Kode Objek Pajak', op.kode_objek_pajak);
-    push(prefix, 'Objek Pajak', op.objek_pajak);
-    push(prefix, 'DPP (Rp)', op.dpp);
-    push(prefix, 'Tarif (%)', op.tarif_persen);
-    push(prefix, 'Pajak Penghasilan (Rp)', op.pajak_penghasilan);
-  });
+  const objekList = data.pemotongan?.objek_pajak || [];
 
-  push('Dokumen Dasar', 'Jenis Dokumen', data.pemotongan?.dokumen_dasar?.jenis_dokumen);
-  push('Dokumen Dasar', 'Tanggal Dokumen', data.pemotongan?.dokumen_dasar?.tanggal_dokumen);
-  push('Dokumen Dasar', 'Nomor Dokumen', data.pemotongan?.dokumen_dasar?.nomor_dokumen);
-  push('Dokumen Dasar', 'Nomor SP2D', data.pemotongan?.nomor_sp2d);
-  push('Pemotong', 'NPWP/NIK Pemotong', data.pemotong?.npwp_nik);
-  push('Pemotong', 'NITKU Pemotong', data.pemotong?.nitku);
-  push('Pemotong', 'Nama Pemotong', data.pemotong?.nama_pemotong);
-  push('Pemotong', 'Tanggal', data.pemotong?.tanggal);
-  push('Pemotong', 'Nama Penandatangan', data.pemotong?.nama_penandatangan);
+  if (objekList.length === 0) {
+    const row = [...commonData, '', '', '', '', '', ...trailingData];
+    rows.push(row.map(esc).join(';'));
+  } else {
+    objekList.forEach((op) => {
+      const row = [
+        ...commonData,
+        op.kode_objek_pajak,
+        op.objek_pajak,
+        op.dpp,
+        op.tarif_persen,
+        op.pajak_penghasilan,
+        ...trailingData
+      ];
+      rows.push(row.map(esc).join(';'));
+    });
+  }
 
   return rows.join('\n');
 };
