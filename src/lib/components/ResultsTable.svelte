@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { SerializableSimulationResult } from "$lib/worker-types";
   import { formatRupiah, formatNumber } from "$lib";
-  import { exportResultsToCsv } from "$lib/exportCsv";
+  import { exportResultsToExcel } from "$lib/exportExcel";
   import { browser } from "$app/environment";
 
   export let results: SerializableSimulationResult[] = [];
@@ -66,11 +66,11 @@
       <div class="card-header-actions">
         <button
           class="btn btn-outline btn-export"
-          on:click={() => exportResultsToCsv(results)}
-          title="Export ke CSV (Ctrl+E)"
+          on:click={() => exportResultsToExcel(results, "demivio-kalkulator.xlsx")}
+          title="Export ke Excel (Ctrl+E)"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          <span>Export</span>
+          <span>Excel</span>
         </button>
       </div>
     {/if}

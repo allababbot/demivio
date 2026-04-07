@@ -25,7 +25,8 @@
   "dependencies": {
     "@vercel/analytics": "^1.6.1",
     "decimal.js": "^10.4.3",
-    "pdfjs-dist": "^5.5.207"
+    "pdfjs-dist": "^5.5.207",
+    "xlsx": "^0.18.5"
   },
   "type": "module"
 }

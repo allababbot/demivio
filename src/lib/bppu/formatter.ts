@@ -18,6 +18,85 @@ export const fileSizeLabel = (b: number): string => {
   return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+export const toExcelRows = (data: BppuData, fileName: string): any[][] => {
+  const headers = [
+    'File',
+    'Nomor BPPU',
+    'Masa Pajak',
+    'Sifat Pemotongan',
+    'Status Bukti Pemotongan',
+    'NPWP/NIK Penerima',
+    'Nama Penerima',
+    'NITKU Penerima',
+    'Jenis Fasilitas',
+    'Jenis PPh',
+    'Kode Objek Pajak',
+    'Nama Objek Pajak',
+    'DPP (Rp)',
+    'Tarif (%)',
+    'PPh (Rp)',
+    'Jenis Dokumen Dasar',
+    'Tanggal Dokumen Dasar',
+    'Nomor Dokumen Dasar',
+    'Nomor SP2D',
+    'NPWP/NIK Pemotong',
+    'NITKU Pemotong',
+    'Nama Pemotong',
+    'Tanggal Bukti',
+    'Nama Penandatangan'
+  ];
+
+  const rows: any[][] = [];
+  rows.push(headers);
+
+  const commonData = [
+    fileName,
+    data.header?.nomor,
+    data.header?.masa_pajak,
+    data.header?.sifat_pemotongan,
+    data.header?.status_bukti_pemotongan,
+    data.penerima?.npwp_nik,
+    data.penerima?.nama,
+    data.penerima?.nitku,
+    data.pemotongan?.jenis_fasilitas,
+    data.pemotongan?.jenis_pph
+  ];
+
+  const trailingData = [
+    data.pemotongan?.dokumen_dasar?.jenis_dokumen,
+    data.pemotongan?.dokumen_dasar?.tanggal_dokumen,
+    data.pemotongan?.dokumen_dasar?.nomor_dokumen,
+    data.pemotongan?.nomor_sp2d,
+    data.pemotong?.npwp_nik,
+    data.pemotong?.nitku,
+    data.pemotong?.nama_pemotong,
+    data.pemotong?.tanggal,
+    data.pemotong?.nama_penandatangan
+  ];
+
+  const objekList = data.pemotongan?.objek_pajak || [];
+
+  if (objekList.length === 0) {
+    const row = [...commonData, '', '', '', '', '', ...trailingData];
+    rows.push(row);
+  } else {
+    objekList.forEach((op) => {
+      const row = [
+        ...commonData,
+        op.kode_objek_pajak,
+        op.objek_pajak,
+        op.dpp,
+        op.tarif_persen,
+        op.pajak_penghasilan,
+        ...trailingData
+      ];
+      rows.push(row);
+    });
+  }
+
+  return rows;
+};
+
 export const toCSV = (data: BppuData, fileName: string): string => {
   const esc = (v: string | number | null | undefined) =>
     `"${String(v ?? '').replace(/"/g, '""')}"`;

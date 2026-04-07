@@ -1,8 +1,9 @@
 <script lang="ts">
   import Navbar from '$lib/components/Navbar.svelte';
   import { parseBppuText, extractPdfTextLocal } from '$lib/bppu/parser';
-  import { fileSizeLabel, toCSV, fmtRp } from '$lib/bppu/formatter';
+  import { fileSizeLabel, toCSV, fmtRp, toExcelRows } from '$lib/bppu/formatter';
   import type { BppuResult, BppuData, ObjekPajak } from '$lib/bppu/types';
+  import * as XLSX from 'xlsx';
 
   // State
   let files: File[] = [];
@@ -65,35 +66,33 @@
     activeTab = 0;
   }
 
-  function exportCSV(result: BppuResult) {
+  function exportExcel(result: BppuResult) {
     if (!result.data) return;
-    const csv = toCSV(result.data, result.fileName);
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = result.fileName.replace('.pdf', '') + '_bppu.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    const rows = toExcelRows(result.data, result.fileName);
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'BPPU Data');
+    XLSX.writeFile(workbook, result.fileName.replace('.pdf', '') + '_bppu.xlsx');
   }
 
-  function exportAllCSV() {
+  function exportAllExcel() {
     const ok = results.filter((r): r is BppuResult & { data: BppuData } => r.ok && r.data != null);
     if (ok.length === 0) return;
-    const firstCsv = toCSV(ok[0].data, ok[0].fileName).split('\n');
-    const header = firstCsv[0];
-    const allRows = [header];
+
+    const allRows: any[][] = [];
+    // Get headers from first result
+    const firstResultRows = toExcelRows(ok[0].data, ok[0].fileName);
+    allRows.push(firstResultRows[0]); // Header
+
     ok.forEach((r) => {
-      const lines = toCSV(r.data, r.fileName).split('\n').slice(1);
-      allRows.push(...lines);
+      const rows = toExcelRows(r.data, r.fileName);
+      allRows.push(...rows.slice(1)); // Data rows only
     });
-    const blob = new Blob(['\uFEFF' + allRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'bppu_semua.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+
+    const worksheet = XLSX.utils.aoa_to_sheet(allRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Semua BPPU');
+    XLSX.writeFile(workbook, 'bppu_semua.xlsx');
   }
 
   function reset() {
@@ -138,7 +137,7 @@
           <div class="card-header-actions">
             <button class="btn btn-outline" on:click={reset} title="Reset">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-              Standard
+              Reset
             </button>
           </div>
         {/if}
@@ -237,9 +236,9 @@
         </div>
         <div class="card-header-actions">
           {#if successCount > 1}
-            <button class="btn btn-outline" on:click={exportAllCSV}>
+            <button class="btn btn-outline" on:click={exportAllExcel}>
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export Semua CSV
+              Export Semua Excel
             </button>
           {/if}
           <button class="btn btn-outline" on:click={() => (results = [])}>
@@ -292,9 +291,9 @@
                   <span class="badge badge-success">{d.header.status_bukti_pemotongan}</span>
                 {/if}
               </div>
-              <button class="btn btn-primary btn-sm" on:click={() => exportCSV(activeResult)}>
+              <button class="btn btn-primary btn-sm" on:click={() => exportExcel(activeResult)}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                CSV
+                Excel
               </button>
             </div>
 

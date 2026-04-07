@@ -2,10 +2,12 @@ import * as pdfjsLib from 'pdfjs-dist';
 import type { BppuData, ObjekPajak } from './types';
 
 // Set worker path — bundled with pdfjs-dist
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+if (typeof window !== 'undefined' || typeof self !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url
+  ).toString();
+}
 
 export const parseBppuText = (text: string): BppuData => {
   const data: BppuData = {
@@ -80,27 +82,66 @@ export const parseBppuText = (text: string): BppuData => {
   }
 
   // Extract Objek Pajak Table
-  const b3Idx = lines.findIndex((l) => l === 'B.3');
+  const b3Idx = lines.findIndex((l) => l.startsWith('B.3'));
   if (b3Idx !== -1) {
-    const b7Idx = lines.indexOf('B.7', b3Idx);
+    const b7Idx = lines.findIndex((l, i) => i >= b3Idx && l.startsWith('B.7'));
     if (b7Idx !== -1) {
       let curr = b7Idx + 1;
-      while (curr < lines.length) {
-        const line = lines[curr];
-        if (line === 'B.8' || line.includes('Dokumen Dasar') || line.startsWith('C.')) break;
-        if (/^\d{2}-\d{3}-\d{2}$/.test(line)) {
+      let currentCode = '';
+      let buffer: string[] = [];
+
+      const finalize = () => {
+        if (!currentCode || buffer.length < 1) return;
+        
+        // Search for rate (contains %)
+        let tIdx = buffer.findIndex((s) => s.includes('%'));
+        
+        // If no %, fallback to some heuristic or assume it's the 2nd to last if we have 3+
+        if (tIdx === -1 && buffer.length >= 3) tIdx = buffer.length - 2;
+
+        if (tIdx !== -1) {
+          const dIdx = tIdx - 1;
+          const pIdx = tIdx + 1;
+
           const obj: ObjekPajak = {
-            kode_objek_pajak: line,
-            objek_pajak: cleanVal(lines[curr + 1]),
-            dpp: cleanVal(lines[curr + 2]),
-            tarif_persen: cleanVal(lines[curr + 3]),
-            pajak_penghasilan: cleanVal(lines[curr + 4])
+            kode_objek_pajak: currentCode,
+            objek_pajak: buffer
+              .slice(0, dIdx)
+              .filter((s) => s !== '')
+              .join(' '),
+            dpp: cleanVal(buffer[dIdx]),
+            tarif_persen: cleanVal(buffer[tIdx]),
+            pajak_penghasilan: cleanVal(buffer[pIdx])
           };
           data.pemotongan.objek_pajak.push(obj);
-          curr += 5;
         } else {
-          curr++;
+          // Fallback if structure is weird: everything is description
+          data.pemotongan.objek_pajak.push({
+            kode_objek_pajak: currentCode,
+            objek_pajak: buffer.join(' '),
+            dpp: '',
+            tarif_persen: '',
+            pajak_penghasilan: ''
+          });
         }
+      };
+
+      while (curr < lines.length) {
+        const line = lines[curr];
+        if (line.startsWith('B.8') || line.includes('Dokumen Dasar') || line.startsWith('C.')) {
+          finalize();
+          break;
+        }
+
+        // New record starts with a code
+        if (/^\d{2}-\d{3}-\d{2}$/.test(line)) {
+          finalize();
+          currentCode = line;
+          buffer = [];
+        } else if (currentCode) {
+          buffer.push(line);
+        }
+        curr++;
       }
     }
   }

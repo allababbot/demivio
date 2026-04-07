@@ -2,6 +2,7 @@
   import TopBar from "$lib/components/TopBar.svelte";
   import Navbar from "$lib/components/Navbar.svelte";
   import { browser } from "$app/environment";
+  import * as XLSX from "xlsx";
 
   // ── Types ────────────────────────────────────────────────────────────────
   interface CoretaxRow {
@@ -412,17 +413,13 @@
   function downloadTemplate(type: "coretax" | "app") {
     const headers =
       type === "coretax"
-        ? "npwp pembeli;nama pembeli;no faktur;tanggal;dpp;dpp nilai lain;ppn;referensi"
-        : "no faktur aplikasi;referensi;dpp;ppn";
-    const blob = new Blob([headers + "\n"], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `template_${type}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+        ? [["npwp pembeli", "nama pembeli", "no faktur", "tanggal", "dpp", "dpp nilai lain", "ppn", "referensi"]]
+        : [["no faktur aplikasi", "referensi", "dpp", "ppn"]];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(headers);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+    XLSX.writeFile(workbook, `template_${type}.xlsx`);
   }
 
   // ── Formatting ────────────────────────────────────────────────────────────
@@ -451,7 +448,7 @@
   );
 
   // ── Export ────────────────────────────────────────────────────────────────
-  function exportCsv() {
+  function exportExcel() {
     const headers = [
       "Referensi",
       "NPWP",
@@ -468,35 +465,26 @@
       "Selisih PPN",
     ];
 
-    const lines = [
-      headers.join(";"),
-      ...rekonRows.map((r) =>
-        [
-          r.referensi,
-          r.npwp,
-          r.nama,
-          r.noFaktur,
-          r.tanggal,
-          r.dppCoretax ?? 0,
-          r.dppNilaiLainCoretax ?? 0,
-          r.ppnCoretax ?? 0,
-          r.noFakturApp,
-          r.dppApp ?? 0,
-          r.ppnApp ?? 0,
-          r.selisihDpp,
-          r.selisihPpn,
-        ].join(";"),
-      ),
-    ];
-    const blob = new Blob(["\uFEFF" + lines.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "rekonsiliasi_lengkap.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    const rows = rekonRows.map((r) => [
+      r.referensi,
+      r.npwp,
+      r.nama,
+      r.noFaktur,
+      r.tanggal,
+      r.dppCoretax ?? 0,
+      r.dppNilaiLainCoretax ?? 0,
+      r.ppnCoretax ?? 0,
+      r.noFakturApp,
+      r.dppApp ?? 0,
+      r.ppnApp ?? 0,
+      r.selisihDpp,
+      r.selisihPpn,
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Rekonsiliasi");
+    XLSX.writeFile(workbook, "rekonsiliasi_lengkap.xlsx");
   }
 </script>
 
@@ -727,7 +715,7 @@
             >{fmtSelisih(totalSelisihPpn)}</span
           >
         </div>
-        <button class="btn btn-outline btn-sm export-btn" on:click={exportCsv}>
+        <button class="btn btn-outline btn-sm export-btn" on:click={exportExcel}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="14"
@@ -741,7 +729,7 @@
               points="7 10 12 15 17 10"
             /><line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          Export CSV
+          Export Excel
         </button>
       </div>
 

@@ -6,7 +6,7 @@
   } from "$lib/worker-types";
   import { validateFormInputs } from "$lib/validation";
   import { estimateCombinationsSimple } from "$lib/simulator";
-  import { exportResultsToCsv } from "$lib/exportCsv";
+  import { exportResultsToExcel } from "$lib/exportExcel";
   import ReferenceForm from "$lib/components/ReferenceForm.svelte";
   import TargetForm from "$lib/components/TargetForm.svelte";
   import ParametersPanel from "$lib/components/ParametersPanel.svelte";
@@ -99,7 +99,8 @@
       handleCancel();
     } else if (e.ctrlKey && e.key === "e") {
       e.preventDefault();
-      if (simResults.length > 0) exportResultsToCsv(simResults);
+      if (simResults.length > 0)
+        exportResultsToExcel(simResults, "demivio-kalkulator.xlsx");
     }
   }
 
