@@ -25,7 +25,15 @@
   >
     BPPU Extractor
   </a>
+  <a
+    href="/ppn-xml"
+    class="nav-link"
+    class:active={$page.url.pathname.startsWith("/ppn-xml")}
+  >
+    XML Modifier
+  </a>
 </nav>
+
 
 <style>
   .navbar {

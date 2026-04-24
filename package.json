@@ -23,6 +23,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.104.1",
     "@vercel/analytics": "^1.6.1",
     "decimal.js": "^10.4.3",
     "pdfjs-dist": "^5.5.207",
