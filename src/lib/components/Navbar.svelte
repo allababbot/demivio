@@ -26,6 +26,13 @@
     BPPU Extractor
   </a>
   <a
+    href="/faktur"
+    class="nav-link"
+    class:active={$page.url.pathname.startsWith("/faktur")}
+  >
+    Faktur Extractor
+  </a>
+  <a
     href="/ppn-xml"
     class="nav-link"
     class:active={$page.url.pathname.startsWith("/ppn-xml")}

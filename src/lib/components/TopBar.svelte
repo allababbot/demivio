@@ -1,7 +1,7 @@
 <script lang="ts">
   import ThemeToggle from "./ThemeToggle.svelte";
   import { page } from '$app/stores';
-  
+
   export let onHelpClick: () => void = () => {};
 
 </script>

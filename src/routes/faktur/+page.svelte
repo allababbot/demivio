@@ -1,18 +1,21 @@
 <script lang="ts">
     import Navbar from "$lib/components/Navbar.svelte";
-    import { parseBppuText, extractPdfTextLocal } from "$lib/bppu/parser";
-    import {
-        fileSizeLabel,
-        toCSV,
-        fmtRp,
-        toExcelRows,
-    } from "$lib/bppu/formatter";
-    import type { BppuResult, BppuData, ObjekPajak } from "$lib/bppu/types";
+    import { extractPdfTextLocal, parseFakturText } from "$lib/faktur/parser";
+    import { toExcelRows } from "$lib/faktur/formatter";
+    import type { FakturData } from "$lib/faktur/types";
     import * as XLSX from "xlsx";
+    import { fileSizeLabel } from "$lib/bppu/formatter";
 
-    // State
+    interface FakturResult {
+        fileName: string;
+        fileSize: number;
+        data: FakturData | null;
+        ok: boolean;
+        error?: string;
+    }
+
     let files: File[] = [];
-    let results: BppuResult[] = [];
+    let results: FakturResult[] = [];
     let loading = false;
     let status = "";
     let error = "";
@@ -26,7 +29,9 @@
 
     function handleFiles(fs: FileList | null) {
         if (!fs) return;
-        const pdfs = Array.from(fs).filter((f) => f.type === "application/pdf");
+        const pdfs = Array.from(fs).filter(
+            (f) => f.type === "application/pdf" || f.name.endsWith(".pdf"),
+        );
         if (pdfs.length === 0) {
             error = "Hanya file PDF yang didukung.";
             return;
@@ -52,13 +57,14 @@
         loading = true;
         error = "";
         results = [];
-        const out: BppuResult[] = [];
+        const out: FakturResult[] = [];
+
         for (let i = 0; i < files.length; i++) {
             const f = files[i];
             status = `Memproses ${i + 1}/${files.length}: ${f.name}…`;
             try {
                 const text = await extractPdfTextLocal(f);
-                const data = parseBppuText(text);
+                const data = parseFakturText(text);
                 out.push({
                     fileName: f.name,
                     fileSize: f.size,
@@ -81,26 +87,26 @@
         activeTab = 0;
     }
 
-    function exportExcel(result: BppuResult) {
+    function exportExcel(result: FakturResult) {
         if (!result.data) return;
         const rows = toExcelRows(result.data, result.fileName);
         const worksheet = XLSX.utils.aoa_to_sheet(rows);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "BPPU Data");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Faktur Data");
         XLSX.writeFile(
             workbook,
-            result.fileName.replace(".pdf", "") + "_bppu.xlsx",
+            result.fileName.replace(".pdf", "") + "_faktur.xlsx",
         );
     }
 
     function exportAllExcel() {
         const ok = results.filter(
-            (r): r is BppuResult & { data: BppuData } => r.ok && r.data != null,
+            (r): r is FakturResult & { data: FakturData } =>
+                r.ok && r.data != null,
         );
         if (ok.length === 0) return;
 
         const allRows: any[][] = [];
-        // Get headers from first result
         const firstResultRows = toExcelRows(ok[0].data, ok[0].fileName);
         allRows.push(firstResultRows[0]); // Header
 
@@ -111,8 +117,8 @@
 
         const worksheet = XLSX.utils.aoa_to_sheet(allRows);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Semua BPPU");
-        XLSX.writeFile(workbook, "bppu_semua.xlsx");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Semua Faktur");
+        XLSX.writeFile(workbook, "faktur_semua.xlsx");
     }
 
     function reset() {
@@ -122,27 +128,10 @@
         status = "";
         if (fileInput) fileInput.value = "";
     }
-
-    function totalDPP(objekList: ObjekPajak[]) {
-        return objekList.reduce((s, o) => {
-            const n = parseInt(String(o.dpp || "0").replace(/\D/g, ""), 10);
-            return s + (Number.isNaN(n) ? 0 : n);
-        }, 0);
-    }
-
-    function totalPPh(objekList: ObjekPajak[]) {
-        return objekList.reduce((s, o) => {
-            const n = parseInt(
-                String(o.pajak_penghasilan || "0").replace(/\D/g, ""),
-                10,
-            );
-            return s + (Number.isNaN(n) ? 0 : n);
-        }, 0);
-    }
 </script>
 
 <svelte:head>
-    <title>BPPU Extractor – Demivio</title>
+    <title>Faktur Extractor – Demivio</title>
 </svelte:head>
 
 <div class="container animate-in">
@@ -154,7 +143,7 @@
             <header class="card-header">
                 <div class="card-header-main">
                     <div class="step-badge">1</div>
-                    <h2 class="card-title">Pilih File PDF</h2>
+                    <h2 class="card-title">Pilih File PDF Faktur</h2>
                 </div>
                 {#if files.length > 0}
                     <div class="card-header-actions">
@@ -184,8 +173,6 @@
             </header>
 
             <div class="card-content">
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                     class="dropzone"
                     class:drag-active={dragOver}
@@ -336,7 +323,7 @@
             <header class="card-header">
                 <div class="card-header-main">
                     <div class="step-badge">2</div>
-                    <h2 class="card-title">Hasil Ekstraksi</h2>
+                    <h2 class="card-title">Hasil Ekstraksi Faktur</h2>
                     <div class="results-stats">
                         <span class="badge badge-success"
                             >{successCount} berhasil</span
@@ -458,32 +445,21 @@
                 {#if activeResult}
                     {#if activeResult.ok && activeResult.data}
                         {@const d = activeResult.data}
-                        {@const objekList = d.pemotongan?.objek_pajak || []}
 
                         <!-- Result Summary Bar -->
                         <div class="result-summary card">
                             <div class="result-summary-info">
                                 <p class="result-nama">
-                                    {d.penerima?.nama || "—"}
+                                    {d.penjual?.nama || "—"}
                                 </p>
                                 <p class="result-meta">
-                                    No. {d.header?.nomor} · Masa {d.header
-                                        ?.masa_pajak} · {d.pemotongan
-                                        ?.jenis_pph}
+                                    No. {d.header?.nomor_seri || "—"}
                                 </p>
                             </div>
                             <div class="result-badges">
-                                {#if d.header?.sifat_pemotongan}
-                                    <span class="badge badge-amber"
-                                        >{d.header.sifat_pemotongan}</span
-                                    >
-                                {/if}
-                                {#if d.header?.status_bukti_pemotongan}
-                                    <span class="badge badge-success"
-                                        >{d.header
-                                            .status_bukti_pemotongan}</span
-                                    >
-                                {/if}
+                                <span class="badge badge-success"
+                                    >Faktur Pajak</span
+                                >
                             </div>
                             <button
                                 class="btn btn-primary btn-sm"
@@ -514,32 +490,29 @@
                             </button>
                         </div>
 
-                        <!-- Identity Cards -->
+                        <!-- Identity Grid -->
                         <div class="identity-grid">
                             <div class="card identity-card">
                                 <div class="section-head">
-                                    <span class="section-title"
-                                        >A. Identitas Penerima / WP Dipotong</span
-                                    >
+                                    <span class="section-title">Penjual</span>
                                 </div>
                                 <div class="field-list">
                                     <div class="field">
-                                        <span class="field-label">NPWP/NIK</span
-                                        >
-                                        <span class="field-value mono"
-                                            >{d.penerima?.npwp_nik || "—"}</span
-                                        >
-                                    </div>
-                                    <div class="field">
                                         <span class="field-label">Nama</span>
                                         <span class="field-value accent"
-                                            >{d.penerima?.nama || "—"}</span
+                                            >{d.penjual?.nama || "—"}</span
                                         >
                                     </div>
                                     <div class="field">
-                                        <span class="field-label">NITKU</span>
+                                        <span class="field-label">NPWP</span>
                                         <span class="field-value mono"
-                                            >{d.penerima?.nitku || "—"}</span
+                                            >{d.penjual?.npwp || "—"}</span
+                                        >
+                                    </div>
+                                    <div class="field">
+                                        <span class="field-label">Alamat</span>
+                                        <span class="field-value"
+                                            >{d.penjual?.alamat || "—"}</span
                                         >
                                     </div>
                                 </div>
@@ -547,218 +520,88 @@
 
                             <div class="card identity-card">
                                 <div class="section-head">
-                                    <span class="section-title"
-                                        >C. Identitas Pemotong PPh</span
-                                    >
+                                    <span class="section-title">Pembeli</span>
                                 </div>
                                 <div class="field-list">
+                                    <div class="field">
+                                        <span class="field-label">Nama</span>
+                                        <span class="field-value accent"
+                                            >{d.pembeli?.nama || "—"}</span
+                                        >
+                                    </div>
                                     <div class="field">
                                         <span class="field-label">NPWP/NIK</span
                                         >
                                         <span class="field-value mono"
-                                            >{d.pemotong?.npwp_nik || "—"}</span
-                                        >
-                                    </div>
-                                    <div class="field">
-                                        <span class="field-label">NITKU</span>
-                                        <span class="field-value mono"
-                                            >{d.pemotong?.nitku || "—"}</span
-                                        >
-                                    </div>
-                                    <div class="field">
-                                        <span class="field-label"
-                                            >Nama Pemotong</span
-                                        >
-                                        <span class="field-value accent"
-                                            >{d.pemotong?.nama_pemotong ||
+                                            >{d.pembeli?.npwp ||
+                                                d.pembeli?.nik ||
                                                 "—"}</span
                                         >
                                     </div>
                                     <div class="field">
-                                        <span class="field-label">Tanggal</span>
+                                        <span class="field-label">Alamat</span>
                                         <span class="field-value"
-                                            >{d.pemotong?.tanggal || "—"}</span
-                                        >
-                                    </div>
-                                    <div class="field">
-                                        <span class="field-label"
-                                            >Nama Penandatangan</span
-                                        >
-                                        <span class="field-value accent"
-                                            >{d.pemotong?.nama_penandatangan ||
-                                                "—"}</span
+                                            >{d.pembeli?.alamat || "—"}</span
                                         >
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Pemotongan Card -->
+                        <!-- Detail Faktur & Pajak -->
                         <div class="card">
                             <div class="section-head">
                                 <span class="section-title"
-                                    >B. Pemotongan / Pemungutan PPh</span
+                                    >Detail Faktur & Pajak</span
                                 >
                             </div>
 
                             <div class="pph-meta">
                                 <div class="pph-meta-item">
-                                    <span class="field-label"
-                                        >Jenis Fasilitas</span
-                                    >
+                                    <span class="field-label">Tanggal</span>
                                     <span class="pph-meta-value"
-                                        >{d.pemotongan?.jenis_fasilitas ||
-                                            "—"}</span
+                                        >{d.header?.tanggal || "—"}</span
                                     >
                                 </div>
                                 <div class="pph-meta-item">
-                                    <span class="field-label">Jenis PPh</span>
+                                    <span class="field-label"
+                                        >Penanda Tangan</span
+                                    >
                                     <span class="pph-meta-value"
-                                        >{d.pemotongan?.jenis_pph || "—"}</span
+                                        >{d.header?.penanda_tangan || "—"}</span
                                     >
                                 </div>
                             </div>
 
-                            <!-- Objek Pajak Table -->
                             <div class="table-wrapper">
                                 <table class="objek-table">
                                     <thead>
                                         <tr>
-                                            <th>Kode Objek Pajak</th>
-                                            <th>Objek Pajak</th>
-                                            <th class="text-right">DPP (Rp)</th>
-                                            <th class="text-right">Tarif (%)</th
-                                            >
-                                            <th class="text-right"
-                                                >Pajak Penghasilan (Rp)</th
-                                            >
+                                            <th class="text-right">DPP</th>
+                                            <th class="text-right">PPN</th>
+                                            <th class="text-right">PPnBM</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {#if objekList.length === 0}
-                                            <tr>
-                                                <td
-                                                    colspan="5"
-                                                    class="empty-cell"
-                                                    >Tidak ada data</td
-                                                >
-                                            </tr>
-                                        {:else}
-                                            {#each objekList as op, i (i)}
-                                                <tr class:alt-row={i % 2 !== 0}>
-                                                    <td class="mono text-muted"
-                                                        >{op.kode_objek_pajak ||
-                                                            "—"}</td
-                                                    >
-                                                    <td class="bold"
-                                                        >{op.objek_pajak ||
-                                                            "—"}</td
-                                                    >
-                                                    <td class="text-right mono">
-                                                        {op.dpp
-                                                            ? parseInt(
-                                                                  String(
-                                                                      op.dpp,
-                                                                  ).replace(
-                                                                      /\D/g,
-                                                                      "",
-                                                                  ),
-                                                                  10,
-                                                              ).toLocaleString(
-                                                                  "id-ID",
-                                                              )
-                                                            : "—"}
-                                                    </td>
-                                                    <td class="text-right mono">
-                                                        {op.tarif_persen
-                                                            ? `${op.tarif_persen}%`
-                                                            : "—"}
-                                                    </td>
-                                                    <td
-                                                        class="text-right mono primary-val"
-                                                    >
-                                                        {op.pajak_penghasilan
-                                                            ? parseInt(
-                                                                  String(
-                                                                      op.pajak_penghasilan,
-                                                                  ).replace(
-                                                                      /\D/g,
-                                                                      "",
-                                                                  ),
-                                                                  10,
-                                                              ).toLocaleString(
-                                                                  "id-ID",
-                                                              )
-                                                            : "—"}
-                                                    </td>
-                                                </tr>
-                                            {/each}
-                                        {/if}
+                                        <tr>
+                                            <td
+                                                class="text-right mono primary-val"
+                                            >
+                                                {d.dpp || "—"}
+                                            </td>
+                                            <td
+                                                class="text-right mono primary-val"
+                                            >
+                                                {d.ppn || "—"}
+                                            </td>
+                                            <td
+                                                class="text-right mono primary-val"
+                                            >
+                                                {d.ppnbm || "—"}
+                                            </td>
+                                        </tr>
                                     </tbody>
-                                    {#if objekList.length > 1}
-                                        <tfoot>
-                                            <tr class="total-row">
-                                                <td
-                                                    colspan="2"
-                                                    class="total-label"
-                                                    >TOTAL</td
-                                                >
-                                                <td
-                                                    class="text-right mono total-label"
-                                                >
-                                                    {totalDPP(
-                                                        objekList,
-                                                    ).toLocaleString("id-ID")}
-                                                </td>
-                                                <td></td>
-                                                <td
-                                                    class="text-right mono primary-val total-label"
-                                                >
-                                                    {totalPPh(
-                                                        objekList,
-                                                    ).toLocaleString("id-ID")}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    {/if}
                                 </table>
-                            </div>
-
-                            <!-- Dokumen Dasar -->
-                            <div class="dokumen-grid">
-                                <div class="dokumen-item">
-                                    <span class="field-label"
-                                        >Jenis Dokumen</span
-                                    >
-                                    <p class="dokumen-value">
-                                        {d.pemotongan?.dokumen_dasar
-                                            ?.jenis_dokumen || "—"}
-                                    </p>
-                                </div>
-                                <div class="dokumen-item">
-                                    <span class="field-label"
-                                        >Tanggal Dokumen</span
-                                    >
-                                    <p class="dokumen-value">
-                                        {d.pemotongan?.dokumen_dasar
-                                            ?.tanggal_dokumen || "—"}
-                                    </p>
-                                </div>
-                                <div class="dokumen-item">
-                                    <span class="field-label"
-                                        >Nomor Dokumen</span
-                                    >
-                                    <p class="dokumen-value mono">
-                                        {d.pemotongan?.dokumen_dasar
-                                            ?.nomor_dokumen || "—"}
-                                    </p>
-                                </div>
-                                <div class="dokumen-item">
-                                    <span class="field-label">Nomor SP2D</span>
-                                    <p class="dokumen-value">
-                                        {d.pemotongan?.nomor_sp2d || "—"}
-                                    </p>
-                                </div>
                             </div>
                         </div>
                     {:else}
@@ -1107,12 +950,20 @@
         color: var(--text);
     }
 
+    .primary-val {
+        color: var(--primary-dark);
+        font-weight: 800;
+    }
+    :global([data-theme="dark"]) .primary-val {
+        color: var(--primary);
+    }
+
     /* Table */
     .table-wrapper {
         overflow-x: auto;
         border-radius: var(--radius-sm);
         border: 1px solid var(--border);
-        margin-bottom: var(--space-4);
+        margin-top: var(--space-4);
     }
 
     .objek-table {
@@ -1129,6 +980,8 @@
         color: var(--text-muted);
         font-weight: 700;
         letter-spacing: 0.05em;
+        padding: var(--space-3) var(--space-4);
+        text-align: left;
     }
 
     .objek-table td {
@@ -1154,54 +1007,6 @@
         font-weight: 700;
     }
 
-    .primary-val {
-        color: var(--primary-dark);
-        font-weight: 800;
-    }
-    :global([data-theme="dark"]) .primary-val {
-        color: var(--primary);
-    }
-
-    .total-row {
-        background: var(--primary-muted);
-    }
-    .total-label {
-        font-weight: 800;
-        color: var(--primary-dark);
-    }
-    :global([data-theme="dark"]) .total-label {
-        color: var(--primary);
-    }
-
-    .empty-cell {
-        text-align: center;
-        color: var(--text-muted);
-        padding: var(--space-8) !important;
-    }
-
-    /* Dokumen Dasar */
-    .dokumen-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: var(--space-4);
-        margin-top: var(--space-4);
-        padding-top: var(--space-4);
-        border-top: 1px solid var(--border);
-    }
-
-    .dokumen-item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .dokumen-value {
-        font-size: var(--text-sm);
-        font-weight: 700;
-        color: var(--text);
-        margin: 0;
-    }
-
     /* Badge colors */
     .badge-success {
         background: oklch(65% 0.18 150 / 0.1);
@@ -1219,15 +1024,6 @@
     }
     :global([data-theme="dark"]) .badge-danger {
         color: oklch(75% 0.15 25);
-    }
-
-    .badge-amber {
-        background: oklch(75% 0.18 75 / 0.1);
-        color: oklch(55% 0.18 75);
-        border: 1px solid oklch(75% 0.18 75 / 0.2);
-    }
-    :global([data-theme="dark"]) .badge-amber {
-        color: oklch(85% 0.15 75);
     }
 
     /* Utility */
