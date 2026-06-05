@@ -1,12 +1,7 @@
 <script lang="ts">
     import Navbar from "$lib/components/Navbar.svelte";
     import { parseBppuText, extractPdfTextLocal } from "$lib/bppu/parser";
-    import {
-        fileSizeLabel,
-        toCSV,
-        fmtRp,
-        toExcelRows,
-    } from "$lib/bppu/formatter";
+    import { fileSizeLabel, toCSV, fmtRp, toExcelRows } from "$lib/bppu/formatter";
     import type { BppuResult, BppuData, ObjekPajak } from "$lib/bppu/types";
     import * as XLSX from "xlsx";
 
@@ -87,16 +82,11 @@
         const worksheet = XLSX.utils.aoa_to_sheet(rows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "BPPU Data");
-        XLSX.writeFile(
-            workbook,
-            result.fileName.replace(".pdf", "") + "_bppu.xlsx",
-        );
+        XLSX.writeFile(workbook, result.fileName.replace(".pdf", "") + "_bppu.xlsx");
     }
 
     function exportAllExcel() {
-        const ok = results.filter(
-            (r): r is BppuResult & { data: BppuData } => r.ok && r.data != null,
-        );
+        const ok = results.filter((r): r is BppuResult & { data: BppuData } => r.ok && r.data != null);
         if (ok.length === 0) return;
 
         const allRows: any[][] = [];
@@ -132,10 +122,7 @@
 
     function totalPPh(objekList: ObjekPajak[]) {
         return objekList.reduce((s, o) => {
-            const n = parseInt(
-                String(o.pajak_penghasilan || "0").replace(/\D/g, ""),
-                10,
-            );
+            const n = parseInt(String(o.pajak_penghasilan || "0").replace(/\D/g, ""), 10);
             return s + (Number.isNaN(n) ? 0 : n);
         }, 0);
     }
@@ -158,11 +145,7 @@
                 </div>
                 {#if files.length > 0}
                     <div class="card-header-actions">
-                        <button
-                            class="btn btn-outline"
-                            on:click={reset}
-                            title="Reset"
-                        >
+                        <button class="btn btn-outline" on:click={reset} title="Reset">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="14"
@@ -173,9 +156,9 @@
                                 stroke-width="2.5"
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                ><path
-                                    d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
-                                /><path d="M3 3v5h5" /></svg
+                                ><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path
+                                    d="M3 3v5h5"
+                                /></svg
                             >
                             Reset
                         </button>
@@ -217,20 +200,13 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         >
-                            <path
-                                d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                            /><polyline points="17 8 12 3 7 8" /><line
-                                x1="12"
-                                y1="3"
-                                x2="12"
-                                y2="15"
-                            />
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
+                                points="17 8 12 3 7 8"
+                            /><line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
                     </div>
                     <p class="dropzone-title">Drag & drop file PDF di sini</p>
-                    <p class="dropzone-hint">
-                        Klik untuk memilih · Bisa lebih dari satu file
-                    </p>
+                    <p class="dropzone-hint">Klik untuk memilih · Bisa lebih dari satu file</p>
                 </div>
 
                 {#if files.length > 0}
@@ -254,13 +230,10 @@
                                     /><polyline points="14 2 14 8 20 8" />
                                 </svg>
                                 <span class="file-name">{f.name}</span>
-                                <span class="file-size"
-                                    >{fileSizeLabel(f.size)}</span
-                                >
+                                <span class="file-size">{fileSizeLabel(f.size)}</span>
                                 <button
                                     class="file-remove"
-                                    on:click|stopPropagation={() =>
-                                        removeFile(f.name)}
+                                    on:click|stopPropagation={() => removeFile(f.name)}
                                     aria-label="Hapus file"
                                 >
                                     <svg
@@ -274,12 +247,7 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                     >
-                                        <line
-                                            x1="18"
-                                            y1="6"
-                                            x2="6"
-                                            y2="18"
-                                        /><line x1="6" y1="6" x2="18" y2="18" />
+                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                                     </svg>
                                 </button>
                             </div>
@@ -311,15 +279,9 @@
                                 stroke-width="2.5"
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                ><polygon
-                                    points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
-                                ></polygon></svg
+                                ><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg
                             >
-                            <span
-                                >Ekstrak{files.length > 0
-                                    ? ` ${files.length} File`
-                                    : ""}</span
-                            >
+                            <span>Ekstrak{files.length > 0 ? ` ${files.length} File` : ""}</span>
                         {/if}
                     </button>
                     {#if loading && status}
@@ -338,22 +300,15 @@
                     <div class="step-badge">2</div>
                     <h2 class="card-title">Hasil Ekstraksi</h2>
                     <div class="results-stats">
-                        <span class="badge badge-success"
-                            >{successCount} berhasil</span
-                        >
+                        <span class="badge badge-success">{successCount} berhasil</span>
                         {#if failCount > 0}
-                            <span class="badge badge-danger"
-                                >{failCount} gagal</span
-                            >
+                            <span class="badge badge-danger">{failCount} gagal</span>
                         {/if}
                     </div>
                 </div>
                 <div class="card-header-actions">
                     {#if successCount > 1}
-                        <button
-                            class="btn btn-outline"
-                            on:click={exportAllExcel}
-                        >
+                        <button class="btn btn-outline" on:click={exportAllExcel}>
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="14"
@@ -364,22 +319,14 @@
                                 stroke-width="2.5"
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                ><path
-                                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                                /><polyline points="7 10 12 15 17 10" /><line
-                                    x1="12"
-                                    y1="15"
-                                    x2="12"
-                                    y2="3"
-                                /></svg
+                                ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
+                                    points="7 10 12 15 17 10"
+                                /><line x1="12" y1="15" x2="12" y2="3" /></svg
                             >
                             Export Semua Excel
                         </button>
                     {/if}
-                    <button
-                        class="btn btn-outline"
-                        on:click={() => (results = [])}
-                    >
+                    <button class="btn btn-outline" on:click={() => (results = [])}>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"
@@ -389,8 +336,7 @@
                             stroke="currentColor"
                             stroke-width="2.5"
                             stroke-linecap="round"
-                            stroke-linejoin="round"
-                            ><path d="m15 18-6-6 6-6" /></svg
+                            stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
                         >
                         Upload Lagi
                     </button>
@@ -402,11 +348,7 @@
                 {#if results.length > 1}
                     <div class="file-tabs">
                         {#each results as r, i (r.fileName)}
-                            <button
-                                class="file-tab"
-                                class:active={activeTab === i}
-                                on:click={() => (activeTab = i)}
-                            >
+                            <button class="file-tab" class:active={activeTab === i} on:click={() => (activeTab = i)}>
                                 {#if r.ok}
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -419,9 +361,7 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                         style="margin-right: 4px; color: var(--success);"
-                                        ><polyline
-                                            points="20 6 9 17 4 12"
-                                        /></svg
+                                        ><polyline points="20 6 9 17 4 12" /></svg
                                     >
                                 {:else}
                                     <svg
@@ -435,12 +375,7 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                         style="margin-right: 4px; color: var(--error);"
-                                        ><line
-                                            x1="18"
-                                            y1="6"
-                                            x2="6"
-                                            y2="18"
-                                        /><line
+                                        ><line x1="18" y1="6" x2="6" y2="18" /><line
                                             x1="6"
                                             y1="6"
                                             x2="18"
@@ -467,28 +402,18 @@
                                     {d.penerima?.nama || "—"}
                                 </p>
                                 <p class="result-meta">
-                                    No. {d.header?.nomor} · Masa {d.header
-                                        ?.masa_pajak} · {d.pemotongan
-                                        ?.jenis_pph}
+                                    No. {d.header?.nomor} · Masa {d.header?.masa_pajak} · {d.pemotongan?.jenis_pph}
                                 </p>
                             </div>
                             <div class="result-badges">
                                 {#if d.header?.sifat_pemotongan}
-                                    <span class="badge badge-amber"
-                                        >{d.header.sifat_pemotongan}</span
-                                    >
+                                    <span class="badge badge-amber">{d.header.sifat_pemotongan}</span>
                                 {/if}
                                 {#if d.header?.status_bukti_pemotongan}
-                                    <span class="badge badge-success"
-                                        >{d.header
-                                            .status_bukti_pemotongan}</span
-                                    >
+                                    <span class="badge badge-success">{d.header.status_bukti_pemotongan}</span>
                                 {/if}
                             </div>
-                            <button
-                                class="btn btn-primary btn-sm"
-                                on:click={() => exportExcel(activeResult)}
-                            >
+                            <button class="btn btn-primary btn-sm" on:click={() => exportExcel(activeResult)}>
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     width="14"
@@ -499,16 +424,9 @@
                                     stroke-width="2.5"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                    ><path
-                                        d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                                    /><polyline
+                                    ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
                                         points="7 10 12 15 17 10"
-                                    /><line
-                                        x1="12"
-                                        y1="15"
-                                        x2="12"
-                                        y2="3"
-                                    /></svg
+                                    /><line x1="12" y1="15" x2="12" y2="3" /></svg
                                 >
                                 Excel
                             </button>
@@ -518,76 +436,48 @@
                         <div class="identity-grid">
                             <div class="card identity-card">
                                 <div class="section-head">
-                                    <span class="section-title"
-                                        >A. Identitas Penerima / WP Dipotong</span
-                                    >
+                                    <span class="section-title">A. Identitas Penerima / WP Dipotong</span>
                                 </div>
                                 <div class="field-list">
                                     <div class="field">
-                                        <span class="field-label">NPWP/NIK</span
-                                        >
-                                        <span class="field-value mono"
-                                            >{d.penerima?.npwp_nik || "—"}</span
-                                        >
+                                        <span class="field-label">NPWP/NIK</span>
+                                        <span class="field-value mono">{d.penerima?.npwp_nik || "—"}</span>
                                     </div>
                                     <div class="field">
                                         <span class="field-label">Nama</span>
-                                        <span class="field-value accent"
-                                            >{d.penerima?.nama || "—"}</span
-                                        >
+                                        <span class="field-value accent">{d.penerima?.nama || "—"}</span>
                                     </div>
                                     <div class="field">
                                         <span class="field-label">NITKU</span>
-                                        <span class="field-value mono"
-                                            >{d.penerima?.nitku || "—"}</span
-                                        >
+                                        <span class="field-value mono">{d.penerima?.nitku || "—"}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="card identity-card">
                                 <div class="section-head">
-                                    <span class="section-title"
-                                        >C. Identitas Pemotong PPh</span
-                                    >
+                                    <span class="section-title">C. Identitas Pemotong PPh</span>
                                 </div>
                                 <div class="field-list">
                                     <div class="field">
-                                        <span class="field-label">NPWP/NIK</span
-                                        >
-                                        <span class="field-value mono"
-                                            >{d.pemotong?.npwp_nik || "—"}</span
-                                        >
+                                        <span class="field-label">NPWP/NIK</span>
+                                        <span class="field-value mono">{d.pemotong?.npwp_nik || "—"}</span>
                                     </div>
                                     <div class="field">
                                         <span class="field-label">NITKU</span>
-                                        <span class="field-value mono"
-                                            >{d.pemotong?.nitku || "—"}</span
-                                        >
+                                        <span class="field-value mono">{d.pemotong?.nitku || "—"}</span>
                                     </div>
                                     <div class="field">
-                                        <span class="field-label"
-                                            >Nama Pemotong</span
-                                        >
-                                        <span class="field-value accent"
-                                            >{d.pemotong?.nama_pemotong ||
-                                                "—"}</span
-                                        >
+                                        <span class="field-label">Nama Pemotong</span>
+                                        <span class="field-value accent">{d.pemotong?.nama_pemotong || "—"}</span>
                                     </div>
                                     <div class="field">
                                         <span class="field-label">Tanggal</span>
-                                        <span class="field-value"
-                                            >{d.pemotong?.tanggal || "—"}</span
-                                        >
+                                        <span class="field-value">{d.pemotong?.tanggal || "—"}</span>
                                     </div>
                                     <div class="field">
-                                        <span class="field-label"
-                                            >Nama Penandatangan</span
-                                        >
-                                        <span class="field-value accent"
-                                            >{d.pemotong?.nama_penandatangan ||
-                                                "—"}</span
-                                        >
+                                        <span class="field-label">Nama Penandatangan</span>
+                                        <span class="field-value accent">{d.pemotong?.nama_penandatangan || "—"}</span>
                                     </div>
                                 </div>
                             </div>
@@ -596,26 +486,17 @@
                         <!-- Pemotongan Card -->
                         <div class="card">
                             <div class="section-head">
-                                <span class="section-title"
-                                    >B. Pemotongan / Pemungutan PPh</span
-                                >
+                                <span class="section-title">B. Pemotongan / Pemungutan PPh</span>
                             </div>
 
                             <div class="pph-meta">
                                 <div class="pph-meta-item">
-                                    <span class="field-label"
-                                        >Jenis Fasilitas</span
-                                    >
-                                    <span class="pph-meta-value"
-                                        >{d.pemotongan?.jenis_fasilitas ||
-                                            "—"}</span
-                                    >
+                                    <span class="field-label">Jenis Fasilitas</span>
+                                    <span class="pph-meta-value">{d.pemotongan?.jenis_fasilitas || "—"}</span>
                                 </div>
                                 <div class="pph-meta-item">
                                     <span class="field-label">Jenis PPh</span>
-                                    <span class="pph-meta-value"
-                                        >{d.pemotongan?.jenis_pph || "—"}</span
-                                    >
+                                    <span class="pph-meta-value">{d.pemotongan?.jenis_pph || "—"}</span>
                                 </div>
                             </div>
 
@@ -627,68 +508,37 @@
                                             <th>Kode Objek Pajak</th>
                                             <th>Objek Pajak</th>
                                             <th class="text-right">DPP (Rp)</th>
-                                            <th class="text-right">Tarif (%)</th
-                                            >
-                                            <th class="text-right"
-                                                >Pajak Penghasilan (Rp)</th
-                                            >
+                                            <th class="text-right">Tarif (%)</th>
+                                            <th class="text-right">Pajak Penghasilan (Rp)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {#if objekList.length === 0}
                                             <tr>
-                                                <td
-                                                    colspan="5"
-                                                    class="empty-cell"
-                                                    >Tidak ada data</td
-                                                >
+                                                <td colspan="5" class="empty-cell">Tidak ada data</td>
                                             </tr>
                                         {:else}
                                             {#each objekList as op, i (i)}
                                                 <tr class:alt-row={i % 2 !== 0}>
-                                                    <td class="mono text-muted"
-                                                        >{op.kode_objek_pajak ||
-                                                            "—"}</td
-                                                    >
-                                                    <td class="bold"
-                                                        >{op.objek_pajak ||
-                                                            "—"}</td
-                                                    >
+                                                    <td class="mono text-muted">{op.kode_objek_pajak || "—"}</td>
+                                                    <td class="bold">{op.objek_pajak || "—"}</td>
                                                     <td class="text-right mono">
                                                         {op.dpp
                                                             ? parseInt(
-                                                                  String(
-                                                                      op.dpp,
-                                                                  ).replace(
-                                                                      /\D/g,
-                                                                      "",
-                                                                  ),
+                                                                  String(op.dpp).replace(/\D/g, ""),
                                                                   10,
-                                                              ).toLocaleString(
-                                                                  "id-ID",
-                                                              )
+                                                              ).toLocaleString("id-ID")
                                                             : "—"}
                                                     </td>
                                                     <td class="text-right mono">
-                                                        {op.tarif_persen
-                                                            ? `${op.tarif_persen}%`
-                                                            : "—"}
+                                                        {op.tarif_persen ? `${op.tarif_persen}%` : "—"}
                                                     </td>
-                                                    <td
-                                                        class="text-right mono primary-val"
-                                                    >
+                                                    <td class="text-right mono primary-val">
                                                         {op.pajak_penghasilan
                                                             ? parseInt(
-                                                                  String(
-                                                                      op.pajak_penghasilan,
-                                                                  ).replace(
-                                                                      /\D/g,
-                                                                      "",
-                                                                  ),
+                                                                  String(op.pajak_penghasilan).replace(/\D/g, ""),
                                                                   10,
-                                                              ).toLocaleString(
-                                                                  "id-ID",
-                                                              )
+                                                              ).toLocaleString("id-ID")
                                                             : "—"}
                                                     </td>
                                                 </tr>
@@ -698,25 +548,13 @@
                                     {#if objekList.length > 1}
                                         <tfoot>
                                             <tr class="total-row">
-                                                <td
-                                                    colspan="2"
-                                                    class="total-label"
-                                                    >TOTAL</td
-                                                >
-                                                <td
-                                                    class="text-right mono total-label"
-                                                >
-                                                    {totalDPP(
-                                                        objekList,
-                                                    ).toLocaleString("id-ID")}
+                                                <td colspan="2" class="total-label">TOTAL</td>
+                                                <td class="text-right mono total-label">
+                                                    {totalDPP(objekList).toLocaleString("id-ID")}
                                                 </td>
                                                 <td></td>
-                                                <td
-                                                    class="text-right mono primary-val total-label"
-                                                >
-                                                    {totalPPh(
-                                                        objekList,
-                                                    ).toLocaleString("id-ID")}
+                                                <td class="text-right mono primary-val total-label">
+                                                    {totalPPh(objekList).toLocaleString("id-ID")}
                                                 </td>
                                             </tr>
                                         </tfoot>
@@ -727,30 +565,21 @@
                             <!-- Dokumen Dasar -->
                             <div class="dokumen-grid">
                                 <div class="dokumen-item">
-                                    <span class="field-label"
-                                        >Jenis Dokumen</span
-                                    >
+                                    <span class="field-label">Jenis Dokumen</span>
                                     <p class="dokumen-value">
-                                        {d.pemotongan?.dokumen_dasar
-                                            ?.jenis_dokumen || "—"}
+                                        {d.pemotongan?.dokumen_dasar?.jenis_dokumen || "—"}
                                     </p>
                                 </div>
                                 <div class="dokumen-item">
-                                    <span class="field-label"
-                                        >Tanggal Dokumen</span
-                                    >
+                                    <span class="field-label">Tanggal Dokumen</span>
                                     <p class="dokumen-value">
-                                        {d.pemotongan?.dokumen_dasar
-                                            ?.tanggal_dokumen || "—"}
+                                        {d.pemotongan?.dokumen_dasar?.tanggal_dokumen || "—"}
                                     </p>
                                 </div>
                                 <div class="dokumen-item">
-                                    <span class="field-label"
-                                        >Nomor Dokumen</span
-                                    >
+                                    <span class="field-label">Nomor Dokumen</span>
                                     <p class="dokumen-value mono">
-                                        {d.pemotongan?.dokumen_dasar
-                                            ?.nomor_dokumen || "—"}
+                                        {d.pemotongan?.dokumen_dasar?.nomor_dokumen || "—"}
                                     </p>
                                 </div>
                                 <div class="dokumen-item">
@@ -774,12 +603,12 @@
                                 stroke-width="2.5"
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                ><circle cx="12" cy="12" r="10" /><line
-                                    x1="15"
+                                ><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line
+                                    x1="9"
                                     y1="9"
-                                    x2="9"
+                                    x2="15"
                                     y2="15"
-                                /><line x1="9" y1="9" x2="15" y2="15" /></svg
+                                /></svg
                             >
                             Gagal memproses
                             <strong>{activeResult.fileName}</strong>: {activeResult.error}
@@ -794,6 +623,7 @@
 <style>
     .card-flush {
         padding: 0 !important;
+        overflow: hidden;
     }
 
     .card-content {
@@ -930,17 +760,20 @@
         }
     }
 
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        background: var(--surface-alt);
+        border-bottom: 1px solid var(--border);
+    }
+
     /* Results */
     .results-section {
         display: flex;
         flex-direction: column;
         gap: var(--space-4);
-    }
-
-    .card-header-main {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
     }
 
     .results-stats {
@@ -1077,8 +910,7 @@
     }
 
     .field-value.mono {
-        font-family:
-            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     .field-value.accent {
         color: var(--primary-dark);
@@ -1147,8 +979,7 @@
         color: var(--text-muted);
     }
     .mono {
-        font-family:
-            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     .bold {
         font-weight: 700;

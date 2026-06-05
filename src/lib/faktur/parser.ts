@@ -1,12 +1,60 @@
-import * as pdfjsLib from "pdfjs-dist";
-import type { FakturData, FakturBarangJasa } from "./types";
+// Polyfill for browser APIs missing in Node.js SSR — must run before any dynamic import of pdfjs-dist
+if (typeof DOMMatrix === "undefined") {
+  (globalThis as any).DOMMatrix = class DOMMatrix {
+    a = 1;
+    b = 0;
+    c = 0;
+    d = 1;
+    e = 0;
+    f = 0;
+    constructor(init?: string) {
+      if (init) {
+        const m = init.replace("matrix(", "").replace(")", "").split(",");
+        if (m.length === 6) {
+          this.a = +m[0];
+          this.b = +m[1];
+          this.c = +m[2];
+          this.d = +m[3];
+          this.e = +m[4];
+          this.f = +m[5];
+        }
+      }
+    }
+    multiply(other: any) {
+      return this;
+    }
+    translate(tx: number, ty: number) {
+      this.e = tx;
+      this.f = ty;
+      return this;
+    }
+    scale(sx: number, sy?: number) {
+      this.a = sx;
+      this.d = sy ?? sx;
+      return this;
+    }
+  };
+}
 
-// Set worker path
-if (typeof window !== "undefined" || typeof self !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url,
-  ).toString();
+if (typeof btoa === "undefined") {
+  (globalThis as any).btoa = (str: string) => Buffer.from(str, "binary").toString("base64");
+}
+if (typeof atob === "undefined") {
+  (globalThis as any).atob = (str: string) => Buffer.from(str, "base64").toString("binary");
+}
+
+import type { FakturData } from "./types";
+
+// Lazy-load pdfjs-dist only on the client — avoids SSR crash from missing browser APIs
+let _pdfjs: typeof import("pdfjs-dist") | null = null;
+async function getPdfjs() {
+  if (!_pdfjs) {
+    _pdfjs = await import("pdfjs-dist");
+    if (typeof window !== "undefined" || typeof self !== "undefined") {
+      _pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+    }
+  }
+  return _pdfjs;
 }
 
 export const parseFakturText = (text: string): FakturData => {
@@ -42,49 +90,30 @@ export const parseFakturText = (text: string): FakturData => {
   };
 
   // Header
-  const nsfp = lines.find((l) =>
-    l.includes("Kode dan Nomor Seri Faktur Pajak:"),
-  );
+  const nsfp = lines.find((l) => l.includes("Kode dan Nomor Seri Faktur Pajak:"));
   if (nsfp) data.header.nomor_seri = nsfp.split(":")[1]?.trim() || "";
 
   const refLine = lines.find((l) => l.includes("(Referensi:"));
-  if (refLine)
-    data.header.referensi = refLine
-      .replace("(Referensi:", "")
-      .replace(")", "")
-      .trim();
+  if (refLine) data.header.referensi = refLine.replace("(Referensi:", "").replace(")", "").trim();
 
   // Penjual
   const pkpIdx = lines.findIndex((l) => l.includes("Pengusaha Kena Pajak:"));
   if (pkpIdx !== -1) {
     data.penjual.nama = lines[pkpIdx + 1]?.replace("Nama :", "").trim() || "";
-    data.penjual.alamat =
-      lines[pkpIdx + 2]?.replace("Alamat :", "").trim() +
-      " " +
-      (lines[pkpIdx + 3] || "");
+    data.penjual.alamat = lines[pkpIdx + 2]?.replace("Alamat :", "").trim() + " " + (lines[pkpIdx + 3] || "");
     data.penjual.npwp = lines[pkpIdx + 4]?.replace("NPWP :", "").trim() || "";
   }
 
   // Pembeli
-  const pembeliIdx = lines.findIndex((l) =>
-    l.includes("Pembeli Barang Kena Pajak/Penerima Jasa Kena Pajak:"),
-  );
+  const pembeliIdx = lines.findIndex((l) => l.includes("Pembeli Barang Kena Pajak/Penerima Jasa Kena Pajak:"));
   if (pembeliIdx !== -1) {
-    data.pembeli.nama =
-      lines[pembeliIdx + 1]?.replace("Nama :", "").trim() || "";
-    data.pembeli.alamat =
-      lines[pembeliIdx + 2]?.replace("Alamat :", "").trim() +
-      " " +
-      (lines[pembeliIdx + 3] || "");
-    data.pembeli.npwp =
-      lines[pembeliIdx + 4]?.replace("NPWP :", "").trim() || "";
+    data.pembeli.nama = lines[pembeliIdx + 1]?.replace("Nama :", "").trim() || "";
+    data.pembeli.alamat = lines[pembeliIdx + 2]?.replace("Alamat :", "").trim() + " " + (lines[pembeliIdx + 3] || "");
+    data.pembeli.npwp = lines[pembeliIdx + 4]?.replace("NPWP :", "").trim() || "";
     data.pembeli.nik = lines[pembeliIdx + 5]?.replace("NIK :", "").trim() || "";
-    data.pembeli.nomor_paspor =
-      lines[pembeliIdx + 6]?.replace("Nomor Paspor :", "").trim() || "";
-    data.pembeli.identitas_lain =
-      lines[pembeliIdx + 7]?.replace("Identitas Lain :", "").trim() || "";
-    data.pembeli.email =
-      lines[pembeliIdx + 8]?.replace("Email:", "").trim() || "";
+    data.pembeli.nomor_paspor = lines[pembeliIdx + 6]?.replace("Nomor Paspor :", "").trim() || "";
+    data.pembeli.identitas_lain = lines[pembeliIdx + 7]?.replace("Identitas Lain :", "").trim() || "";
+    data.pembeli.email = lines[pembeliIdx + 8]?.replace("Email:", "").trim() || "";
   }
 
   // Helper to extract values robustly (handles same-line or next-line values)
@@ -115,23 +144,18 @@ export const parseFakturText = (text: string): FakturData => {
   data.ppnbm = extractAmount("Jumlah PPnBM");
 
   // Tanggal & Penanda tangan (footer)
-  const signerIdx = lines.findIndex((l) =>
-    l.includes("Ditandatangani secara elektronik"),
-  );
+  const signerIdx = lines.findIndex((l) => l.includes("Ditandatangani secara elektronik"));
 
   if (signerIdx !== -1) {
     // 1. Ambil Nama Penandatangan
     const signerLine = lines[signerIdx];
-    const afterSignText = signerLine
-      .replace("Ditandatangani secara elektronik", "")
-      .trim();
+    const afterSignText = signerLine.replace("Ditandatangani secara elektronik", "").trim();
 
     if (afterSignText && !afterSignText.startsWith("(")) {
       data.header.penanda_tangan = afterSignText;
     } else {
       // Jika nama ada di baris berikutnya (kadang dalam kurung)
-      data.header.penanda_tangan =
-        lines[signerIdx + 1]?.replace(/[()]/g, "").trim() || "";
+      data.header.penanda_tangan = lines[signerIdx + 1]?.replace(/[()]/g, "").trim() || "";
     }
 
     // 2. Cari Tanggal di sekitar area penandatangan (maksimal 4 baris sebelum/sesudah)
@@ -168,15 +192,14 @@ export const parseFakturText = (text: string): FakturData => {
 };
 
 export const extractPdfTextLocal = async (file: File): Promise<string> => {
+  const pdfjsLib = await getPdfjs();
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   let fullText = "";
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const strings = (content.items as { str: string }[]).map(
-      (item) => item.str,
-    );
+    const strings = (content.items as { str: string }[]).map((item) => item.str);
     fullText += strings.join("\n") + "\n";
   }
   return fullText;

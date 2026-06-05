@@ -9,7 +9,7 @@
     interface FakturResult {
         fileName: string;
         fileSize: number;
-        data: FakturData | null;
+        data?: FakturData | null;
         ok: boolean;
         error?: string;
     }
@@ -29,9 +29,7 @@
 
     function handleFiles(fs: FileList | null) {
         if (!fs) return;
-        const pdfs = Array.from(fs).filter(
-            (f) => f.type === "application/pdf" || f.name.endsWith(".pdf"),
-        );
+        const pdfs = Array.from(fs).filter((f) => f.type === "application/pdf" || f.name.endsWith(".pdf"));
         if (pdfs.length === 0) {
             error = "Hanya file PDF yang didukung.";
             return;
@@ -93,17 +91,11 @@
         const worksheet = XLSX.utils.aoa_to_sheet(rows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Faktur Data");
-        XLSX.writeFile(
-            workbook,
-            result.fileName.replace(".pdf", "") + "_faktur.xlsx",
-        );
+        XLSX.writeFile(workbook, result.fileName.replace(".pdf", "") + "_faktur.xlsx");
     }
 
     function exportAllExcel() {
-        const ok = results.filter(
-            (r): r is FakturResult & { data: FakturData } =>
-                r.ok && r.data != null,
-        );
+        const ok = results.filter((r): r is FakturResult & { data: FakturData } => r.ok && r.data != null);
         if (ok.length === 0) return;
 
         const allRows: any[][] = [];
@@ -147,11 +139,7 @@
                 </div>
                 {#if files.length > 0}
                     <div class="card-header-actions">
-                        <button
-                            class="btn btn-outline"
-                            on:click={reset}
-                            title="Reset"
-                        >
+                        <button class="btn btn-outline" on:click={reset} title="Reset">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="14"
@@ -162,9 +150,9 @@
                                 stroke-width="2.5"
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                ><path
-                                    d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
-                                /><path d="M3 3v5h5" /></svg
+                                ><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path
+                                    d="M3 3v5h5"
+                                /></svg
                             >
                             Reset
                         </button>
@@ -176,6 +164,9 @@
                 <div
                     class="dropzone"
                     class:drag-active={dragOver}
+                    role="button"
+                    tabindex="0"
+                    aria-label="Klik atau drop file PDF di sini"
                     on:dragover={(e) => {
                         e.preventDefault();
                         dragOver = true;
@@ -183,6 +174,12 @@
                     on:dragleave={() => (dragOver = false)}
                     on:drop={onDrop}
                     on:click={() => fileInput?.click()}
+                    on:keydown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            fileInput?.click();
+                        }
+                    }}
                 >
                     <input
                         bind:this={fileInput}
@@ -204,20 +201,13 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         >
-                            <path
-                                d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                            /><polyline points="17 8 12 3 7 8" /><line
-                                x1="12"
-                                y1="3"
-                                x2="12"
-                                y2="15"
-                            />
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
+                                points="17 8 12 3 7 8"
+                            /><line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
                     </div>
                     <p class="dropzone-title">Drag & drop file PDF di sini</p>
-                    <p class="dropzone-hint">
-                        Klik untuk memilih · Bisa lebih dari satu file
-                    </p>
+                    <p class="dropzone-hint">Klik untuk memilih · Bisa lebih dari satu file</p>
                 </div>
 
                 {#if files.length > 0}
@@ -241,13 +231,10 @@
                                     /><polyline points="14 2 14 8 20 8" />
                                 </svg>
                                 <span class="file-name">{f.name}</span>
-                                <span class="file-size"
-                                    >{fileSizeLabel(f.size)}</span
-                                >
+                                <span class="file-size">{fileSizeLabel(f.size)}</span>
                                 <button
                                     class="file-remove"
-                                    on:click|stopPropagation={() =>
-                                        removeFile(f.name)}
+                                    on:click|stopPropagation={() => removeFile(f.name)}
                                     aria-label="Hapus file"
                                 >
                                     <svg
@@ -261,12 +248,7 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                     >
-                                        <line
-                                            x1="18"
-                                            y1="6"
-                                            x2="6"
-                                            y2="18"
-                                        /><line x1="6" y1="6" x2="18" y2="18" />
+                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                                     </svg>
                                 </button>
                             </div>
@@ -298,15 +280,9 @@
                                 stroke-width="2.5"
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                ><polygon
-                                    points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
-                                ></polygon></svg
+                                ><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg
                             >
-                            <span
-                                >Ekstrak{files.length > 0
-                                    ? ` ${files.length} File`
-                                    : ""}</span
-                            >
+                            <span>Ekstrak{files.length > 0 ? ` ${files.length} File` : ""}</span>
                         {/if}
                     </button>
                     {#if loading && status}
@@ -325,22 +301,15 @@
                     <div class="step-badge">2</div>
                     <h2 class="card-title">Hasil Ekstraksi Faktur</h2>
                     <div class="results-stats">
-                        <span class="badge badge-success"
-                            >{successCount} berhasil</span
-                        >
+                        <span class="badge badge-success">{successCount} berhasil</span>
                         {#if failCount > 0}
-                            <span class="badge badge-danger"
-                                >{failCount} gagal</span
-                            >
+                            <span class="badge badge-danger">{failCount} gagal</span>
                         {/if}
                     </div>
                 </div>
                 <div class="card-header-actions">
                     {#if successCount > 1}
-                        <button
-                            class="btn btn-outline"
-                            on:click={exportAllExcel}
-                        >
+                        <button class="btn btn-outline" on:click={exportAllExcel}>
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 width="14"
@@ -351,22 +320,14 @@
                                 stroke-width="2.5"
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                ><path
-                                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                                /><polyline points="7 10 12 15 17 10" /><line
-                                    x1="12"
-                                    y1="15"
-                                    x2="12"
-                                    y2="3"
-                                /></svg
+                                ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
+                                    points="7 10 12 15 17 10"
+                                /><line x1="12" y1="15" x2="12" y2="3" /></svg
                             >
                             Export Semua Excel
                         </button>
                     {/if}
-                    <button
-                        class="btn btn-outline"
-                        on:click={() => (results = [])}
-                    >
+                    <button class="btn btn-outline" on:click={() => (results = [])}>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"
@@ -376,8 +337,7 @@
                             stroke="currentColor"
                             stroke-width="2.5"
                             stroke-linecap="round"
-                            stroke-linejoin="round"
-                            ><path d="m15 18-6-6 6-6" /></svg
+                            stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg
                         >
                         Upload Lagi
                     </button>
@@ -389,11 +349,7 @@
                 {#if results.length > 1}
                     <div class="file-tabs">
                         {#each results as r, i (r.fileName)}
-                            <button
-                                class="file-tab"
-                                class:active={activeTab === i}
-                                on:click={() => (activeTab = i)}
-                            >
+                            <button class="file-tab" class:active={activeTab === i} on:click={() => (activeTab = i)}>
                                 {#if r.ok}
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -406,9 +362,7 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                         style="margin-right: 4px; color: var(--success);"
-                                        ><polyline
-                                            points="20 6 9 17 4 12"
-                                        /></svg
+                                        ><polyline points="20 6 9 17 4 12" /></svg
                                     >
                                 {:else}
                                     <svg
@@ -422,12 +376,7 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                         style="margin-right: 4px; color: var(--error);"
-                                        ><line
-                                            x1="18"
-                                            y1="6"
-                                            x2="6"
-                                            y2="18"
-                                        /><line
+                                        ><line x1="18" y1="6" x2="6" y2="18" /><line
                                             x1="6"
                                             y1="6"
                                             x2="18"
@@ -457,14 +406,9 @@
                                 </p>
                             </div>
                             <div class="result-badges">
-                                <span class="badge badge-success"
-                                    >Faktur Pajak</span
-                                >
+                                <span class="badge badge-success">Faktur Pajak</span>
                             </div>
-                            <button
-                                class="btn btn-primary btn-sm"
-                                on:click={() => exportExcel(activeResult)}
-                            >
+                            <button class="btn btn-primary btn-sm" on:click={() => exportExcel(activeResult)}>
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     width="14"
@@ -475,16 +419,9 @@
                                     stroke-width="2.5"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                    ><path
-                                        d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-                                    /><polyline
+                                    ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
                                         points="7 10 12 15 17 10"
-                                    /><line
-                                        x1="12"
-                                        y1="15"
-                                        x2="12"
-                                        y2="3"
-                                    /></svg
+                                    /><line x1="12" y1="15" x2="12" y2="3" /></svg
                                 >
                                 Excel
                             </button>
@@ -499,21 +436,15 @@
                                 <div class="field-list">
                                     <div class="field">
                                         <span class="field-label">Nama</span>
-                                        <span class="field-value accent"
-                                            >{d.penjual?.nama || "—"}</span
-                                        >
+                                        <span class="field-value accent">{d.penjual?.nama || "—"}</span>
                                     </div>
                                     <div class="field">
                                         <span class="field-label">NPWP</span>
-                                        <span class="field-value mono"
-                                            >{d.penjual?.npwp || "—"}</span
-                                        >
+                                        <span class="field-value mono">{d.penjual?.npwp || "—"}</span>
                                     </div>
                                     <div class="field">
                                         <span class="field-label">Alamat</span>
-                                        <span class="field-value"
-                                            >{d.penjual?.alamat || "—"}</span
-                                        >
+                                        <span class="field-value">{d.penjual?.alamat || "—"}</span>
                                     </div>
                                 </div>
                             </div>
@@ -525,24 +456,15 @@
                                 <div class="field-list">
                                     <div class="field">
                                         <span class="field-label">Nama</span>
-                                        <span class="field-value accent"
-                                            >{d.pembeli?.nama || "—"}</span
-                                        >
+                                        <span class="field-value accent">{d.pembeli?.nama || "—"}</span>
                                     </div>
                                     <div class="field">
-                                        <span class="field-label">NPWP/NIK</span
-                                        >
-                                        <span class="field-value mono"
-                                            >{d.pembeli?.npwp ||
-                                                d.pembeli?.nik ||
-                                                "—"}</span
-                                        >
+                                        <span class="field-label">NPWP/NIK</span>
+                                        <span class="field-value mono">{d.pembeli?.npwp || d.pembeli?.nik || "—"}</span>
                                     </div>
                                     <div class="field">
                                         <span class="field-label">Alamat</span>
-                                        <span class="field-value"
-                                            >{d.pembeli?.alamat || "—"}</span
-                                        >
+                                        <span class="field-value">{d.pembeli?.alamat || "—"}</span>
                                     </div>
                                 </div>
                             </div>
@@ -551,25 +473,17 @@
                         <!-- Detail Faktur & Pajak -->
                         <div class="card">
                             <div class="section-head">
-                                <span class="section-title"
-                                    >Detail Faktur & Pajak</span
-                                >
+                                <span class="section-title">Detail Faktur & Pajak</span>
                             </div>
 
                             <div class="pph-meta">
                                 <div class="pph-meta-item">
                                     <span class="field-label">Tanggal</span>
-                                    <span class="pph-meta-value"
-                                        >{d.header?.tanggal || "—"}</span
-                                    >
+                                    <span class="pph-meta-value">{d.header?.tanggal || "—"}</span>
                                 </div>
                                 <div class="pph-meta-item">
-                                    <span class="field-label"
-                                        >Penanda Tangan</span
-                                    >
-                                    <span class="pph-meta-value"
-                                        >{d.header?.penanda_tangan || "—"}</span
-                                    >
+                                    <span class="field-label">Penanda Tangan</span>
+                                    <span class="pph-meta-value">{d.header?.penanda_tangan || "—"}</span>
                                 </div>
                             </div>
 
@@ -584,19 +498,13 @@
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td
-                                                class="text-right mono primary-val"
-                                            >
+                                            <td class="text-right mono primary-val">
                                                 {d.dpp || "—"}
                                             </td>
-                                            <td
-                                                class="text-right mono primary-val"
-                                            >
+                                            <td class="text-right mono primary-val">
                                                 {d.ppn || "—"}
                                             </td>
-                                            <td
-                                                class="text-right mono primary-val"
-                                            >
+                                            <td class="text-right mono primary-val">
                                                 {d.ppnbm || "—"}
                                             </td>
                                         </tr>
@@ -617,12 +525,12 @@
                                 stroke-width="2.5"
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                ><circle cx="12" cy="12" r="10" /><line
-                                    x1="15"
+                                ><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line
+                                    x1="9"
                                     y1="9"
-                                    x2="9"
+                                    x2="15"
                                     y2="15"
-                                /><line x1="9" y1="9" x2="15" y2="15" /></svg
+                                /></svg
                             >
                             Gagal memproses
                             <strong>{activeResult.fileName}</strong>: {activeResult.error}
@@ -637,6 +545,7 @@
 <style>
     .card-flush {
         padding: 0 !important;
+        overflow: hidden;
     }
 
     .card-content {
@@ -773,17 +682,20 @@
         }
     }
 
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        background: var(--surface-alt);
+        border-bottom: 1px solid var(--border);
+    }
+
     /* Results */
     .results-section {
         display: flex;
         flex-direction: column;
         gap: var(--space-4);
-    }
-
-    .card-header-main {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
     }
 
     .results-stats {
@@ -920,8 +832,7 @@
     }
 
     .field-value.mono {
-        font-family:
-            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     .field-value.accent {
         color: var(--primary-dark);
@@ -989,22 +900,11 @@
         border-bottom: 1px solid var(--border);
     }
 
-    .objek-table .alt-row {
-        background: oklch(0% 0 0 / 0.02);
-    }
-
     .text-right {
         text-align: right;
     }
-    .text-muted {
-        color: var(--text-muted);
-    }
     .mono {
-        font-family:
-            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    }
-    .bold {
-        font-weight: 700;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
     /* Badge colors */

@@ -1,43 +1,94 @@
-import * as pdfjsLib from 'pdfjs-dist';
-import type { BppuData, ObjekPajak } from './types';
+// Polyfill for browser APIs missing in Node.js SSR — must run before any dynamic import of pdfjs-dist
+if (typeof DOMMatrix === "undefined") {
+  (globalThis as any).DOMMatrix = class DOMMatrix {
+    a = 1;
+    b = 0;
+    c = 0;
+    d = 1;
+    e = 0;
+    f = 0;
+    constructor(init?: string) {
+      if (init) {
+        const m = init.replace("matrix(", "").replace(")", "").split(",");
+        if (m.length === 6) {
+          this.a = +m[0];
+          this.b = +m[1];
+          this.c = +m[2];
+          this.d = +m[3];
+          this.e = +m[4];
+          this.f = +m[5];
+        }
+      }
+    }
+    multiply(other: any) {
+      return this;
+    }
+    translate(tx: number, ty: number) {
+      this.e = tx;
+      this.f = ty;
+      return this;
+    }
+    scale(sx: number, sy?: number) {
+      this.a = sx;
+      this.d = sy ?? sx;
+      return this;
+    }
+  };
+}
 
-// Set worker path — bundled with pdfjs-dist
-if (typeof window !== 'undefined' || typeof self !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
-  ).toString();
+if (typeof btoa === "undefined") {
+  (globalThis as any).btoa = (str: string) => Buffer.from(str, "binary").toString("base64");
+}
+if (typeof atob === "undefined") {
+  (globalThis as any).atob = (str: string) => Buffer.from(str, "base64").toString("binary");
+}
+
+import type { BppuData, ObjekPajak } from "./types";
+
+// Lazy-load pdfjs-dist only on the client — avoids SSR crash from missing browser APIs
+let _pdfjs: typeof import("pdfjs-dist") | null = null;
+async function getPdfjs() {
+  if (!_pdfjs) {
+    _pdfjs = await import("pdfjs-dist");
+    if (typeof window !== "undefined" || typeof self !== "undefined") {
+      _pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+    }
+  }
+  return _pdfjs;
 }
 
 export const parseBppuText = (text: string): BppuData => {
   const data: BppuData = {
-    header: { nomor: '', masa_pajak: '', sifat_pemotongan: '', status_bukti_pemotongan: '' },
-    penerima: { npwp_nik: '', nama: '', nitku: '' },
+    header: { nomor: "", masa_pajak: "", sifat_pemotongan: "", status_bukti_pemotongan: "" },
+    penerima: { npwp_nik: "", nama: "", nitku: "" },
     pemotongan: {
-      jenis_fasilitas: '',
-      jenis_pph: '',
+      jenis_fasilitas: "",
+      jenis_pph: "",
       objek_pajak: [],
-      dokumen_dasar: { jenis_dokumen: '', tanggal_dokumen: '', nomor_dokumen: '' },
-      nomor_sp2d: ''
+      dokumen_dasar: { jenis_dokumen: "", tanggal_dokumen: "", nomor_dokumen: "" },
+      nomor_sp2d: "",
     },
-    pemotong: { npwp_nik: '', nitku: '', nama_pemotong: '', tanggal: '', nama_penandatangan: '' }
+    pemotong: { npwp_nik: "", nitku: "", nama_pemotong: "", tanggal: "", nama_penandatangan: "" },
   };
 
-  const lines = text.split('\n').map((l) => l.trim()).filter((l) => l !== '');
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l !== "");
 
   const cleanVal = (v: string | undefined): string => {
-    if (!v) return '';
-    if (/^[A-C]\.\s/.test(v)) return '';
-    if (v.includes('IDENTITAS') || v.includes('PEMOTONGAN')) return '';
+    if (!v) return "";
+    if (/^[A-C]\.\s/.test(v)) return "";
+    if (v.includes("IDENTITAS") || v.includes("PEMOTONGAN")) return "";
     return v;
   };
 
   // Extract Header
-  const pemungutanIdx = lines.findIndex((l) => l === 'PEMUNGUTAN');
+  const pemungutanIdx = lines.findIndex((l) => l === "PEMUNGUTAN");
   if (pemungutanIdx !== -1) {
     const headerVals = lines
       .slice(pemungutanIdx + 1, pemungutanIdx + 15)
-      .filter((l) => l !== '' && !l.includes('IDENTITAS') && !l.includes('WAJIB PAJAK'));
+      .filter((l) => l !== "" && !l.includes("IDENTITAS") && !l.includes("WAJIB PAJAK"));
     if (headerVals.length >= 4) {
       data.header.nomor = cleanVal(headerVals[0]);
       data.header.masa_pajak = cleanVal(headerVals[1]);
@@ -47,55 +98,53 @@ export const parseBppuText = (text: string): BppuData => {
   }
 
   // Extract Penerima
-  const idxA1 = lines.findIndex((l) => l === 'A.1');
+  const idxA1 = lines.findIndex((l) => l === "A.1");
   if (idxA1 !== -1) {
-    const colonIdx = lines.indexOf(':', idxA1);
+    const colonIdx = lines.indexOf(":", idxA1);
     if (colonIdx !== -1) data.penerima.npwp_nik = cleanVal(lines[colonIdx + 1]);
   }
-  const idxA2 = lines.findIndex((l) => l === 'A.2');
+  const idxA2 = lines.findIndex((l) => l === "A.2");
   if (idxA2 !== -1) {
-    const colonIdx = lines.indexOf(':', idxA2);
+    const colonIdx = lines.indexOf(":", idxA2);
     if (colonIdx !== -1) data.penerima.nama = cleanVal(lines[colonIdx + 1]);
   }
-  const idxA3 = lines.findIndex((l) => l.startsWith('A.3') || l.includes('USAHA (NITKU)'));
+  const idxA3 = lines.findIndex((l) => l.startsWith("A.3") || l.includes("USAHA (NITKU)"));
   if (idxA3 !== -1) {
-    const colonIdx = lines.indexOf(':', idxA3);
+    const colonIdx = lines.indexOf(":", idxA3);
     if (colonIdx !== -1) {
       const val = lines[colonIdx + 1];
-      const parts = val.split(' - ');
+      const parts = val.split(" - ");
       data.penerima.nitku = cleanVal(parts[0].trim());
     }
   }
 
   // Extract Pemotongan
-  const b1Idx = lines.findIndex((l) => l === 'B.1');
+  const b1Idx = lines.findIndex((l) => l === "B.1");
   if (b1Idx !== -1) {
-    const line = lines[b1Idx + 1] || '';
-    if (line.includes('Jenis Fasilitas'))
-      data.pemotongan.jenis_fasilitas = cleanVal(line.split(':')[1]?.trim());
+    const line = lines[b1Idx + 1] || "";
+    if (line.includes("Jenis Fasilitas")) data.pemotongan.jenis_fasilitas = cleanVal(line.split(":")[1]?.trim());
   }
-  const b2Idx = lines.findIndex((l) => l === 'B.2');
+  const b2Idx = lines.findIndex((l) => l === "B.2");
   if (b2Idx !== -1) {
-    const line = lines[b2Idx + 1] || '';
-    if (line.includes('Jenis PPh'))
-      data.pemotongan.jenis_pph = cleanVal(line.split(':')[1]?.trim());
+    const line = lines[b2Idx + 1] || "";
+    if (line.includes("Jenis PPh")) data.pemotongan.jenis_pph = cleanVal(line.split(":")[1]?.trim());
   }
 
   // Extract Objek Pajak Table
-  const b3Idx = lines.findIndex((l) => l.startsWith('B.3'));
+  const b3Idx = lines.findIndex((l) => l.startsWith("B.3"));
   if (b3Idx !== -1) {
-    const b7Idx = lines.findIndex((l, i) => i >= b3Idx && l.startsWith('B.7'));
+    const b7Idx = lines.findIndex((l, i) => i >= b3Idx && l.startsWith("B.7"));
     if (b7Idx !== -1) {
       let curr = b7Idx + 1;
-      let currentCode = '';
+      let currentCode = "";
       let buffer: string[] = [];
 
       const finalize = () => {
         if (!currentCode || buffer.length < 1) return;
-        
+
         // Search for rate (contains %)
-        let tIdx = buffer.findIndex((s) => s.includes('%'));
-        
+        let tIdx = buffer.findIndex((s) => s.includes("%"));
+
         // If no %, fallback to some heuristic or assume it's the 2nd to last if we have 3+
         if (tIdx === -1 && buffer.length >= 3) tIdx = buffer.length - 2;
 
@@ -107,28 +156,28 @@ export const parseBppuText = (text: string): BppuData => {
             kode_objek_pajak: currentCode,
             objek_pajak: buffer
               .slice(0, dIdx)
-              .filter((s) => s !== '')
-              .join(' '),
+              .filter((s) => s !== "")
+              .join(" "),
             dpp: cleanVal(buffer[dIdx]),
             tarif_persen: cleanVal(buffer[tIdx]),
-            pajak_penghasilan: cleanVal(buffer[pIdx])
+            pajak_penghasilan: cleanVal(buffer[pIdx]),
           };
           data.pemotongan.objek_pajak.push(obj);
         } else {
           // Fallback if structure is weird: everything is description
           data.pemotongan.objek_pajak.push({
             kode_objek_pajak: currentCode,
-            objek_pajak: buffer.join(' '),
-            dpp: '',
-            tarif_persen: '',
-            pajak_penghasilan: ''
+            objek_pajak: buffer.join(" "),
+            dpp: "",
+            tarif_persen: "",
+            pajak_penghasilan: "",
           });
         }
       };
 
       while (curr < lines.length) {
         const line = lines[curr];
-        if (line.startsWith('B.8') || line.includes('Dokumen Dasar') || line.startsWith('C.')) {
+        if (line.startsWith("B.8") || line.includes("Dokumen Dasar") || line.startsWith("C.")) {
           finalize();
           break;
         }
@@ -147,56 +196,53 @@ export const parseBppuText = (text: string): BppuData => {
   }
 
   // Extract Dokumen Dasar
-  const jenisDocIdx = lines.findIndex((l) => l === 'Jenis Dokumen');
+  const jenisDocIdx = lines.findIndex((l) => l === "Jenis Dokumen");
   if (jenisDocIdx !== -1) {
-    const colonIdx = lines.indexOf(':', jenisDocIdx);
-    if (colonIdx !== -1)
-      data.pemotongan.dokumen_dasar.jenis_dokumen = cleanVal(lines[colonIdx + 1]);
+    const colonIdx = lines.indexOf(":", jenisDocIdx);
+    if (colonIdx !== -1) data.pemotongan.dokumen_dasar.jenis_dokumen = cleanVal(lines[colonIdx + 1]);
   }
-  const tglIdx = lines.findIndex((l) => l.startsWith('Tanggal :'));
-  if (tglIdx !== -1)
-    data.pemotongan.dokumen_dasar.tanggal_dokumen = cleanVal(lines[tglIdx].split(':')[1]?.trim());
+  const tglIdx = lines.findIndex((l) => l.startsWith("Tanggal :"));
+  if (tglIdx !== -1) data.pemotongan.dokumen_dasar.tanggal_dokumen = cleanVal(lines[tglIdx].split(":")[1]?.trim());
 
-  const nomorDocIdx = lines.findIndex((l) => l === 'Nomor Dokumen');
+  const nomorDocIdx = lines.findIndex((l) => l === "Nomor Dokumen");
   if (nomorDocIdx !== -1) {
-    const colonIdx = lines.indexOf(':', nomorDocIdx);
-    if (colonIdx !== -1)
-      data.pemotongan.dokumen_dasar.nomor_dokumen = cleanVal(lines[colonIdx + 1]);
+    const colonIdx = lines.indexOf(":", nomorDocIdx);
+    if (colonIdx !== -1) data.pemotongan.dokumen_dasar.nomor_dokumen = cleanVal(lines[colonIdx + 1]);
   }
 
-  const sp2dIdx = lines.findIndex((l) => l === 'Nomor SP2D');
+  const sp2dIdx = lines.findIndex((l) => l === "Nomor SP2D");
   if (sp2dIdx !== -1) {
-    const colonIdx = lines.indexOf(':', sp2dIdx);
+    const colonIdx = lines.indexOf(":", sp2dIdx);
     if (colonIdx !== -1) data.pemotongan.nomor_sp2d = cleanVal(lines[colonIdx + 1]);
   }
 
   // Extract Pemotong
-  const c1Idx = lines.findIndex((l) => l === 'C.1');
+  const c1Idx = lines.findIndex((l) => l === "C.1");
   if (c1Idx !== -1) {
-    const colonIdx = lines.indexOf(':', c1Idx);
+    const colonIdx = lines.indexOf(":", c1Idx);
     if (colonIdx !== -1) data.pemotong.npwp_nik = cleanVal(lines[colonIdx + 1]);
   }
-  const c2Idx = lines.findIndex((l) => l === 'C.2');
+  const c2Idx = lines.findIndex((l) => l === "C.2");
   if (c2Idx !== -1) {
-    const colonIdx = lines.indexOf(':', c2Idx);
+    const colonIdx = lines.indexOf(":", c2Idx);
     if (colonIdx !== -1) {
       const val = lines[colonIdx + 1];
-      data.pemotong.nitku = cleanVal(val.split(' - ')[0].trim());
+      data.pemotong.nitku = cleanVal(val.split(" - ")[0].trim());
     }
   }
-  const c3Idx = lines.findIndex((l) => l === 'C.3');
+  const c3Idx = lines.findIndex((l) => l === "C.3");
   if (c3Idx !== -1) {
-    const colonIdx = lines.indexOf(':', c3Idx);
+    const colonIdx = lines.indexOf(":", c3Idx);
     if (colonIdx !== -1) data.pemotong.nama_pemotong = cleanVal(lines[colonIdx + 1]);
   }
-  const c4Idx = lines.findIndex((l) => l === 'C.4');
+  const c4Idx = lines.findIndex((l) => l === "C.4");
   if (c4Idx !== -1) {
-    const colonIdx = lines.indexOf(':', c4Idx);
+    const colonIdx = lines.indexOf(":", c4Idx);
     if (colonIdx !== -1) data.pemotong.tanggal = cleanVal(lines[colonIdx + 1]);
   }
-  const c5Idx = lines.findIndex((l) => l === 'C.5');
+  const c5Idx = lines.findIndex((l) => l === "C.5");
   if (c5Idx !== -1) {
-    const colonIdx = lines.indexOf(':', c5Idx);
+    const colonIdx = lines.indexOf(":", c5Idx);
     if (colonIdx !== -1) data.pemotong.nama_penandatangan = cleanVal(lines[colonIdx + 1]);
   }
 
@@ -204,14 +250,15 @@ export const parseBppuText = (text: string): BppuData => {
 };
 
 export const extractPdfTextLocal = async (file: File): Promise<string> => {
+  const pdfjsLib = await getPdfjs();
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let fullText = '';
+  let fullText = "";
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
     const strings = (textContent.items as { str: string }[]).map((item) => item.str);
-    fullText += strings.join('\n') + '\n';
+    fullText += strings.join("\n") + "\n";
   }
   return fullText;
 };
