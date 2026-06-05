@@ -27,6 +27,17 @@
     $: successCount = results.filter((r) => r.ok).length;
     $: failCount = results.filter((r) => !r.ok).length;
 
+    let currentPage = 1;
+    const itemsPerPage = 5;
+
+    $: if (activeTab !== undefined) {
+        currentPage = 1;
+    }
+
+    $: items = activeResult?.data?.barang_jasa || [];
+    $: totalPages = Math.ceil(items.length / itemsPerPage);
+    $: paginatedItems = items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     function handleFiles(fs: FileList | null) {
         if (!fs) return;
         const pdfs = Array.from(fs).filter((f) => f.type === "application/pdf" || f.name.endsWith(".pdf"));
@@ -404,6 +415,12 @@
                                 <p class="result-meta">
                                     No. {d.header?.nomor_seri || "—"}
                                 </p>
+                                <p class="result-meta">
+                                    Tanggal: {d.header?.tanggal || "—"}
+                                </p>
+                                <p class="result-meta">
+                                    Penanda Tangan: {d.header?.penanda_tangan || "—"}
+                                </p>
                             </div>
                             <div class="result-badges">
                                 <span class="badge badge-success">Faktur Pajak</span>
@@ -474,44 +491,81 @@
                         <div class="card">
                             <div class="section-head">
                                 <span class="section-title">Detail Faktur & Pajak</span>
+                                <span class="section-badge">{items.length} barang/jasa</span>
                             </div>
 
-                            <div class="pph-meta">
-                                <div class="pph-meta-item">
-                                    <span class="field-label">Tanggal</span>
-                                    <span class="pph-meta-value">{d.header?.tanggal || "—"}</span>
-                                </div>
-                                <div class="pph-meta-item">
-                                    <span class="field-label">Penanda Tangan</span>
-                                    <span class="pph-meta-value">{d.header?.penanda_tangan || "—"}</span>
-                                </div>
-                            </div>
+            <div class="table-wrapper">
+                <table class="objek-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Kode</th>
+                            <th>Nama</th>
+                            <th class="text-right">Kuantitas</th>
+                            <th class="text-right">Harga Jual</th>
+                            <th class="text-right">Total Harga Jual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each paginatedItems as b}
+                            <tr>
+                                <td><span class="rank-badge">{b.nomor}</span></td>
+                                <td class="mono">{b.kode}</td>
+                                <td>{b.nama}</td>
+                                <td class="text-right mono">{b.kuantitas || "—"}</td>
+                                <td class="text-right mono">{b.harga_jual || "—"}</td>
+                                <td class="text-right mono primary-val">{b.total_harga_jual || "—"}</td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
 
-                            <div class="table-wrapper">
-                                <table class="objek-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-right">DPP</th>
-                                            <th class="text-right">PPN</th>
-                                            <th class="text-right">PPnBM</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td class="text-right mono primary-val">
-                                                {d.dpp || "—"}
-                                            </td>
-                                            <td class="text-right mono primary-val">
-                                                {d.ppn || "—"}
-                                            </td>
-                                            <td class="text-right mono primary-val">
-                                                {d.ppnbm || "—"}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+            {#if items.length > 5}
+                <div class="pagination">
+                    <button 
+                        class="btn btn-outline" 
+                        disabled={currentPage === 1} 
+                        on:click={() => currentPage--}
+                        title="Halaman Sebelumnya"
+                    >
+                        ‹
+                    </button>
+                    <span class="pagination-info">
+                        Halaman {currentPage} / {totalPages}
+                    </span>
+                    <button 
+                        class="btn btn-outline" 
+                        disabled={currentPage === totalPages} 
+                        on:click={() => currentPage++}
+                        title="Halaman Berikutnya"
+                    >
+                        ›
+                    </button>
+                </div>
+            {/if}
+
+            <div class="summary-section">
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <span class="summary-label">Grand Total Harga Jual</span>
+                        <span class="summary-value accent">{d.total_harga_jual || "—"}</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-label">Dasar Pengenaan Pajak (DPP)</span>
+                        <span class="summary-value">{d.dpp || "—"}</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-label">PPN</span>
+                        <span class="summary-value">{d.ppn || "—"}</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-label">PPnBM</span>
+                        <span class="summary-value">{d.ppnbm || "—"}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
                     {:else}
                         <div class="card error">
                             <svg
@@ -794,6 +848,19 @@
         margin-bottom: var(--space-4);
         padding-bottom: var(--space-2);
         border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .section-badge {
+        font-size: var(--text-xs);
+        font-weight: 700;
+        color: var(--text-muted);
+        background: var(--surface-alt);
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
     }
 
     .section-title {
@@ -841,25 +908,7 @@
         color: var(--primary);
     }
 
-    /* PPh Meta */
-    .pph-meta {
-        display: flex;
-        gap: var(--space-8);
-        margin-bottom: var(--space-4);
-        flex-wrap: wrap;
-    }
 
-    .pph-meta-item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .pph-meta-value {
-        font-size: var(--text-sm);
-        font-weight: 700;
-        color: var(--text);
-    }
 
     .primary-val {
         color: var(--primary-dark);
@@ -884,13 +933,11 @@
     }
 
     .objek-table th {
-        background: var(--surface-alt);
-        border-bottom: 1px solid var(--border);
-        text-transform: uppercase;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border-strong);
         font-size: var(--text-xs);
         color: var(--text-muted);
         font-weight: 700;
-        letter-spacing: 0.05em;
         padding: var(--space-3) var(--space-4);
         text-align: left;
     }
@@ -898,6 +945,25 @@
     .objek-table td {
         padding: var(--space-3) var(--space-4);
         border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+        color: var(--text);
+    }
+
+    .objek-table tr:hover {
+        background: var(--surface-alt);
+    }
+
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background: var(--border-strong);
+        color: var(--text-muted);
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 700;
     }
 
     .text-right {
@@ -936,5 +1002,81 @@
         .identity-grid {
             grid-template-columns: 1fr;
         }
+    }
+
+    /* Summary Section styling (Not Table) */
+    .summary-section {
+        margin-top: var(--space-6);
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--border);
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--space-4);
+    }
+
+    .summary-card {
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: var(--space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    .summary-label {
+        font-size: var(--text-xs);
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .summary-value {
+        font-size: var(--text-lg);
+        font-weight: 800;
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .summary-value.accent {
+        color: var(--primary-dark);
+    }
+    :global([data-theme="dark"]) .summary-value.accent {
+        color: var(--primary);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+        padding: 0;
+    }
+
+    .pagination :global(.btn) {
+        height: 28px;
+        width: 28px;
+        min-width: 28px;
+        padding: 0;
+        font-size: var(--text-base);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+    }
+
+    .pagination-info {
+        font-size: var(--text-xs);
+        font-weight: 700;
+        color: var(--text-muted);
+        padding: 0 var(--space-1);
     }
 </style>

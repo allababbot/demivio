@@ -71,6 +71,7 @@ export const parseFakturText = (text: string): FakturData => {
       email: "",
     },
     barang_jasa: [],
+    total_harga_jual: "",
     dpp: "",
     ppn: "",
     ppnbm: "",
@@ -118,7 +119,14 @@ export const parseFakturText = (text: string): FakturData => {
 
   // Helper to extract values robustly (handles same-line or next-line values)
   const extractAmount = (keyword: string): string => {
-    const idx = lines.findIndex((l) => l.includes(keyword));
+    // Search from the end of the document to avoid matching headers
+    let idx = -1;
+    for (let j = lines.length - 1; j >= 0; j--) {
+      if (lines[j].includes(keyword)) {
+        idx = j;
+        break;
+      }
+    }
     if (idx === -1) return "";
 
     const line = lines[idx];
@@ -131,17 +139,103 @@ export const parseFakturText = (text: string): FakturData => {
       return after;
     }
 
-    // Otherwise, try the next non-empty line
-    if (lines[idx + 1]) {
-      return lines[idx + 1].trim();
+    // Try the next few non-empty lines until we find one with numbers
+    for (let k = idx + 1; k < Math.min(lines.length, idx + 5); k++) {
+      const val = lines[k].trim();
+      if (val.match(/\d/) && !val.includes(":") && !val.includes("/")) {
+        return val;
+      }
     }
 
     return "";
   };
 
+  data.total_harga_jual = extractAmount("Harga Jual / Penggantian");
   data.dpp = extractAmount("Dasar Pengenaan Pajak");
   data.ppn = extractAmount("Jumlah PPN");
   data.ppnbm = extractAmount("Jumlah PPnBM");
+
+  // Extract barang/jasa table rows
+  let i = lines.findIndex((l) => l === "No." || l === "No");
+  if (i === -1) {
+    i = lines.findIndex((l) => l.includes("No."));
+  }
+
+  if (i !== -1) {
+    const items: typeof data.barang_jasa = [];
+    let currentItemNum = 1;
+    let idx = i + 1;
+    // Skip headers until we find "1"
+    while (idx < lines.length && lines[idx].trim() !== "1") {
+      idx++;
+    }
+
+    while (idx < lines.length) {
+      const line = lines[idx].trim();
+      if (
+        line.includes("Harga Jual / Penggantian / Uang Muka / Termin") ||
+        line.includes("Dikurangi Potongan") ||
+        line.includes("Dasar Pengenaan Pajak")
+      ) {
+        break;
+      }
+
+      if (line === String(currentItemNum)) {
+        let codeIdx = idx + 1;
+        while (codeIdx < lines.length && !lines[codeIdx].trim()) {
+          codeIdx++;
+        }
+
+        let nameIdx = codeIdx + 1;
+        while (nameIdx < lines.length && !lines[nameIdx].trim()) {
+          nameIdx++;
+        }
+
+        let priceDetailIdx = nameIdx + 1;
+        while (priceDetailIdx < lines.length && !lines[priceDetailIdx].trim()) {
+          priceDetailIdx++;
+        }
+
+        if (priceDetailIdx < lines.length && lines[priceDetailIdx].trim().startsWith("Rp")) {
+          const kode = lines[codeIdx].trim();
+          const nama = lines[nameIdx].trim();
+          const priceDetailLine = lines[priceDetailIdx].trim();
+
+          const unitPriceMatch = priceDetailLine.match(/Rp\s*([\d.,]+)/);
+          const harga_satuan = unitPriceMatch ? unitPriceMatch[1] : "";
+
+          const qtyMatch = priceDetailLine.match(/x\s*(.+)$/);
+          const kuantitas = qtyMatch ? qtyMatch[1].trim() : "";
+
+          let totalIdx = priceDetailIdx + 1;
+          while (totalIdx < lines.length) {
+            const nextLine = lines[totalIdx].trim();
+            if (nextLine.startsWith("Potongan Harga") || nextLine.startsWith("PPnBM")) {
+              totalIdx++;
+              continue;
+            }
+            if (/^[\d.,]+$/.test(nextLine)) {
+              const total_harga_jual = nextLine;
+              items.push({
+                nomor: String(currentItemNum),
+                kode,
+                nama,
+                harga_jual: harga_satuan,
+                kuantitas,
+                total_harga_jual,
+              });
+              idx = totalIdx;
+              currentItemNum++;
+              break;
+            }
+            totalIdx++;
+          }
+        }
+      }
+      idx++;
+    }
+    data.barang_jasa = items;
+  }
 
   // Tanggal & Penanda tangan (footer)
   const signerIdx = lines.findIndex((l) => l.includes("Ditandatangani secara elektronik"));

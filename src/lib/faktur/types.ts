@@ -13,6 +13,7 @@ export interface FakturBarangJasa {
   kode: string;
   nama: string;
   harga_jual: string;
+  kuantitas: string;
   total_harga_jual: string;
 }
 
@@ -26,6 +27,7 @@ export interface FakturData {
   penjual: FakturPihak;
   pembeli: FakturPihak;
   barang_jasa: FakturBarangJasa[];
+  total_harga_jual: string;
   dpp: string;
   ppn: string;
   ppnbm: string;
