@@ -1,25 +1,43 @@
 # Demivio - Tax Utility Suite
 
-Demivio adalah sekumpulan utilitas berbasis web yang dirancang untuk mempermudah perhitungan dan pengelolaan administrasi perpajakan yang kompleks menjadi lebih cepat dan otomatis. Saat ini Demivio memiliki dua fitur utama: **Kalkulator PPN** dan **Rekonsiliasi**.
+Demivio adalah sekumpulan utilitas berbasis web untuk mempercepat dan mengotomasi pekerjaan administrasi perpajakan di Indonesia. Semua pemrosesan dilakukan sepenuhnya di sisi klien (browser) — tidak ada data yang dikirim ke server.
 
-## Fitur Utama
+## Fitur
 
 ### 1. Kalkulator PPN (Reverse Calculator)
 
-Aplikasi simulasi cerdas untuk menemukan kombinasi Harga Satuan, Kuantitas, dan Potongan/Diskon yang paling tepat untuk mencapai target PPN yang spesifik.
+Simulasi cerdas untuk menemukan kombinasi Harga Satuan, Kuantitas, dan Potongan/Diskon yang menghasilkan target PPN tertentu.
 
-- **Reverse Calculation**: Menghitung mundur dari Target PPN ke Harga Satuan yang sesuai.
-- **High Performance & Precision**: Menggunakan algoritma matematis dan _Web Workers_ untuk mengeksplorasi hingga 5 juta kombinasi tanpa membuat browser _freeze_.
-- **Kustomisasi Parameter**: Tentukan rentang toleransi selisih PPN, batas pencarian komponen harga, atau kunci (lock) parameter tertentu.
+- **Reverse calculation** — menghitung mundur dari target PPN ke komponen harga yang sesuai.
+- **High performance** — menggunakan Web Workers untuk mengeksplorasi hingga 5 juta kombinasi tanpa membekukan browser.
+- **Kustomisasi parameter** — atur rentang toleransi selisih PPN, batas rentang pencarian, atau kunci (lock) nilai tertentu agar tidak ikut dicari.
 
 ### 2. Rekonsiliasi Penjualan
 
-Tool otomatisasi untuk membandingkan dan mencocokkan (rekonsiliasi) data transaksi penjualan bulanan antara sistem perusahaan dan DJP (Coretax).
+Membandingkan dan mencocokkan data transaksi penjualan bulanan antara sistem perusahaan dan DJP (Coretax).
 
-- **Automated Matching**: Menggabungkan data dari CSV Coretax dan CSV Aplikasi Penjualan berdasarkan Nomor Referensi secara kilat.
-- **Deteksi Selisih Detil**: Secara otomatis menyoroti baris transaksi yang memiliki selisih pada nilai DPP maupun PPN.
-- **Filter & Sort**: Dilengkapi _quick-filters_ untuk melihat kombinasi data (Hanya Coretax, Hanya Aplikasi, Ada Selisih) serta pengurutan data terintegrasi.
-- **Bebas Server**: Proses parsing, deduplikasi, dan komparasi CSV dilakukan seratus persen di sisi _client_ (browser) menggunakan File API demi privasi dan kecepatan maksimal.
+- **Automated matching** — menggabungkan data CSV Coretax dan CSV Aplikasi Penjualan berdasarkan Nomor Referensi.
+- **Deteksi selisih** — menyoroti baris transaksi yang memiliki perbedaan pada nilai DPP maupun PPN.
+- **Filter & sort** — quick-filter untuk melihat data Hanya Coretax, Hanya Aplikasi, atau Ada Selisih, dengan pengurutan terintegrasi.
+
+### 3. Faktur Extractor
+
+Mengekstrak data terstruktur dari file PDF Faktur Pajak (e-Faktur DJP).
+
+- **Multi-file** — proses banyak PDF sekaligus dengan drag & drop.
+- **Ekstraksi lengkap** — mengambil data penjual, pembeli, nomor seri, tanggal, referensi, dan seluruh baris barang/jasa beserta kode, nama, kuantitas, satuan, harga jual, dan total harga jual.
+- **Nama barang multi-baris** — menangani nama barang/jasa yang terpotong (word-wrap) di PDF.
+- **Export Excel** — satu baris per barang/jasa, termasuk metadata faktur (DPP, PPN, PPnBM). Format tanggal dikonversi otomatis ke DD/MM/YYYY saat export.
+- **Export semua sekaligus** — gabungkan hasil dari banyak PDF ke satu file Excel.
+
+### 4. BPPU Extractor
+
+Mengekstrak data terstruktur dari file PDF Bukti Pemotongan/Pemungutan Unifikasi (BPPU) Coretax.
+
+- **Multi-file** — proses banyak PDF sekaligus dengan drag & drop.
+- **Ekstraksi lengkap** — mengambil identitas penerima, pemotong, objek pajak (kode, DPP, tarif, PPh), dan dokumen dasar.
+- **Export Excel** — satu baris per objek pajak, termasuk metadata bukti potong.
+- **Export semua sekaligus** — gabungkan hasil dari banyak PDF ke satu file Excel.
 
 ## Cara Menggunakan
 
@@ -27,34 +45,48 @@ Tool otomatisasi untuk membandingkan dan mencocokkan (rekonsiliasi) data transak
 
 1. Masukkan **Transaksi Acuan** (Harga Satuan, Qty, Potongan).
 2. Tentukan **Target PPN** dan batas **Toleransi**.
-3. Sesuaikan batasan rentang pencarian komponen sebelum menekan tombol **Jalankan**.
-4. Hasil komputasi akan diurutkan berdasarkan tingkat akurasi terdekat.
+3. Sesuaikan rentang parameter pencarian, lalu klik **Jalankan**.
+4. Hasil diurutkan berdasarkan tingkat akurasi terdekat ke target.
 
 ### Rekonsiliasi
 
-1. Siapkan data penjualan sesuai **Template CSV** yang tersedia di aplikasi.
-2. Unggah file data dari **Coretax** dan file data dari **Aplikasi Penjualan**.
-3. Tabel akan otomatis menampilkan perbandingan dan menyorot baris yang terdapat selisih pencatatan.
-4. Klik pada baris tabel mana saja untuk melihat rincian sumber aslinya.
+1. Siapkan data sesuai **Template CSV** yang tersedia di aplikasi.
+2. Unggah file dari **Coretax** dan file dari **Aplikasi Penjualan**.
+3. Tabel otomatis menampilkan perbandingan dan menyorot baris yang ada selisih.
+4. Klik baris mana saja untuk melihat rincian sumber aslinya.
+
+### Faktur Extractor
+
+1. Drag & drop atau pilih satu atau lebih file **PDF e-Faktur**.
+2. Klik **Ekstrak** — hasil tampil per tab untuk setiap file.
+3. Periksa data barang/jasa, lalu klik **Excel** untuk mengunduh per file atau **Export Semua Excel** untuk menggabungkan semuanya.
+
+### BPPU Extractor
+
+1. Drag & drop atau pilih satu atau lebih file **PDF BPPU Coretax**.
+2. Klik **Ekstrak** — hasil tampil per tab untuk setiap file.
+3. Periksa data objek pajak, lalu klik **Excel** untuk mengunduh per file atau **Export Semua Excel** untuk menggabungkan semuanya.
 
 ## Teknologi
 
-- SvelteKit (UI & Routing)
-- TypeScript
-- Web Workers (Background Processing)
-- Decimal.js (High-precision financial calculation)
-- PapaParse (CSV Parsing & Export)
+- **SvelteKit** — UI & routing
+- **TypeScript** — type safety di seluruh codebase
+- **pdfjs-dist** — ekstraksi teks dari PDF di sisi klien
+- **Web Workers** — komputasi berat di background thread
+- **Decimal.js** — kalkulasi finansial presisi tinggi
+- **PapaParse** — parsing & export CSV
+- **SheetJS (xlsx)** — export Excel
 
-## Cara Menjalankan
-
-```bash
-npm install
-npm run dev
-```
-
-ATAU
+## Menjalankan Secara Lokal
 
 ```bash
 pnpm install
 pnpm dev
+```
+
+atau dengan npm:
+
+```bash
+npm install
+npm run dev
 ```
