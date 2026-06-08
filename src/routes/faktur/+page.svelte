@@ -502,6 +502,7 @@
                             <th>Kode</th>
                             <th>Nama</th>
                             <th class="text-right">Kuantitas</th>
+                            <th>Satuan</th>
                             <th class="text-right">Harga Jual</th>
                             <th class="text-right">Total Harga Jual</th>
                         </tr>
@@ -513,6 +514,7 @@
                                 <td class="mono">{b.kode}</td>
                                 <td>{b.nama}</td>
                                 <td class="text-right mono">{b.kuantitas || "—"}</td>
+                                <td>{b.satuan || "—"}</td>
                                 <td class="text-right mono">{b.harga_jual || "—"}</td>
                                 <td class="text-right mono primary-val">{b.total_harga_jual || "—"}</td>
                             </tr>

@@ -191,21 +191,35 @@ export const parseFakturText = (text: string): FakturData => {
           nameIdx++;
         }
 
+        // Nama barang bisa lebih dari satu baris (word-wrap) — kumpulkan
+        // semua baris setelah kode sampai bertemu baris yang dimulai dengan "Rp"
+        let nameLines = [lines[nameIdx].trim()];
         let priceDetailIdx = nameIdx + 1;
-        while (priceDetailIdx < lines.length && !lines[priceDetailIdx].trim()) {
+        while (priceDetailIdx < lines.length) {
+          const candidate = lines[priceDetailIdx].trim();
+          if (!candidate) { priceDetailIdx++; continue; }
+          if (candidate.startsWith("Rp")) break;
+          // Hentikan juga jika bertemu baris yang seharusnya bukan bagian nama
+          if (
+            candidate.includes("Harga Jual / Penggantian") ||
+            candidate.includes("Dasar Pengenaan Pajak") ||
+            candidate === String(currentItemNum + 1)
+          ) break;
+          nameLines.push(candidate);
           priceDetailIdx++;
         }
 
         if (priceDetailIdx < lines.length && lines[priceDetailIdx].trim().startsWith("Rp")) {
           const kode = lines[codeIdx].trim();
-          const nama = lines[nameIdx].trim();
+          const nama = nameLines.join(" ");
           const priceDetailLine = lines[priceDetailIdx].trim();
 
           const unitPriceMatch = priceDetailLine.match(/Rp\s*([\d.,]+)/);
           const harga_satuan = unitPriceMatch ? unitPriceMatch[1] : "";
 
-          const qtyMatch = priceDetailLine.match(/x\s*(.+)$/);
+          const qtyMatch = priceDetailLine.match(/x\s*([\d.,]+)\s*(.+)$/);
           const kuantitas = qtyMatch ? qtyMatch[1].trim() : "";
+          const satuan = qtyMatch ? qtyMatch[2].trim() : "";
 
           let totalIdx = priceDetailIdx + 1;
           while (totalIdx < lines.length) {
@@ -222,6 +236,7 @@ export const parseFakturText = (text: string): FakturData => {
                 nama,
                 harga_jual: harga_satuan,
                 kuantitas,
+                satuan,
                 total_harga_jual,
               });
               idx = totalIdx;

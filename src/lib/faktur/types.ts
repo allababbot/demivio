@@ -14,6 +14,7 @@ export interface FakturBarangJasa {
   nama: string;
   harga_jual: string;
   kuantitas: string;
+  satuan: string;
   total_harga_jual: string;
 }
 
