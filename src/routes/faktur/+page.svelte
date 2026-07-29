@@ -140,125 +140,63 @@
 <div class="container animate-in">
     <!-- Upload Section -->
     {#if results.length === 0}
-        <div class="card card-flush upload-card fade-in">
-            <header class="card-header">
-                <div class="card-header-main">
+        <div class="upload-grid">
+            <div class="upload-card fade-in">
+                <header class="card-header">
                     <div class="step-badge">1</div>
                     <h2 class="card-title">Pilih File PDF Faktur</h2>
-                </div>
-                {#if files.length > 0}
-                    <div class="card-header-actions">
-                        <button class="btn btn-outline" on:click={reset} title="Reset">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                ><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path
-                                    d="M3 3v5h5"
-                                /></svg
-                            >
-                            Reset
-                        </button>
-                    </div>
-                {/if}
-            </header>
+                    {#if files.length > 0}
+                        <div class="card-header-actions">
+                            <button class="btn btn-outline" on:click={reset} title="Reset">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                                Reset
+                            </button>
+                        </div>
+                    {/if}
+                </header>
 
-            <div class="card-content">
-                <div
-                    class="dropzone"
-                    class:drag-active={dragOver}
-                    role="button"
-                    tabindex="0"
-                    aria-label="Klik atau drop file PDF di sini"
-                    on:dragover={(e) => {
-                        e.preventDefault();
-                        dragOver = true;
-                    }}
+                <label
+                    class="drop-zone"
+                    class:drag-over={dragOver}
+                    class:has-file={files.length > 0 && !loading}
+                    class:is-loading={loading}
+                    on:dragover={(e) => { e.preventDefault(); dragOver = true; }}
                     on:dragleave={() => (dragOver = false)}
                     on:drop={onDrop}
-                    on:click={() => fileInput?.click()}
-                    on:keydown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            fileInput?.click();
-                        }
-                    }}
                 >
                     <input
                         bind:this={fileInput}
                         type="file"
                         accept="application/pdf"
                         multiple
-                        style="display:none"
+                        class="file-input"
                         on:change={(e) => handleFiles(e.currentTarget.files)}
                     />
-                    <div class="dropzone-icon">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="40"
-                            height="40"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
-                                points="17 8 12 3 7 8"
-                            /><line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                    </div>
-                    <p class="dropzone-title">Drag & drop file PDF di sini</p>
-                    <p class="dropzone-hint">Klik untuk memilih · Bisa lebih dari satu file</p>
-                </div>
+
+                    {#if loading}
+                        <div class="processing-bar"><div class="processing-fill"></div></div>
+                        <span class="drop-text">Memproses…</span>
+                    {:else if files.length > 0}
+                        <svg class="file-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
+                        <span class="file-name">{files.length} File Dipilih</span>
+                        <span class="file-count">{files.length} file</span>
+                    {:else}
+                        <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
+                        <span class="drop-text">Drag & drop PDF Faktur di sini</span>
+                        <span class="drop-divider">atau</span>
+                        <button class="btn btn-sm btn-outline" on:click|stopPropagation={() => fileInput?.click()}>Pilih File</button>
+                    {/if}
+                </label>
 
                 {#if files.length > 0}
                     <div class="file-list">
                         {#each files as f (f.name)}
                             <div class="file-row">
-                                <svg
-                                    class="file-icon"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path
-                                        d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-                                    /><polyline points="14 2 14 8 20 8" />
-                                </svg>
+                                <svg class="file-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
                                 <span class="file-name">{f.name}</span>
                                 <span class="file-size">{fileSizeLabel(f.size)}</span>
-                                <button
-                                    class="file-remove"
-                                    on:click|stopPropagation={() => removeFile(f.name)}
-                                    aria-label="Hapus file"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2.5"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                    </svg>
+                                <button class="file-remove" on:click|stopPropagation={() => removeFile(f.name)} aria-label="Hapus file">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                                 </button>
                             </div>
                         {/each}
@@ -266,38 +204,25 @@
                 {/if}
 
                 {#if error}
-                    <div class="error">{error}</div>
+                    <div class="upload-error">{error}</div>
                 {/if}
 
-                <div class="extract-controls">
-                    <button
-                        class="btn btn-primary btn-run"
-                        on:click={extractAll}
-                        disabled={files.length === 0 || loading}
-                    >
-                        {#if loading}
-                            <div class="spinner"></div>
-                            <span>Memproses…</span>
-                        {:else}
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                ><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg
-                            >
-                            <span>Ekstrak{files.length > 0 ? ` ${files.length} File` : ""}</span>
+                {#if files.length > 0}
+                    <div class="extract-controls">
+                        <button class="btn btn-primary btn-run" on:click={extractAll} disabled={loading}>
+                            {#if loading}
+                                <div class="spinner"></div>
+                                <span>Memproses…</span>
+                            {:else}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                                <span>Ekstrak {files.length} File</span>
+                            {/if}
+                        </button>
+                        {#if loading && status}
+                            <span class="status-text">{status}</span>
                         {/if}
-                    </button>
-                    {#if loading && status}
-                        <span class="status-text">{status}</span>
-                    {/if}
-                </div>
+                    </div>
+                {/if}
             </div>
         </div>
     {/if}
@@ -597,6 +522,101 @@
 </div>
 
 <style>
+    /* Upload Grid & Card (Rekon style) */
+    .upload-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    .upload-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        background: var(--surface-alt);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .card-header .step-badge {
+        flex-shrink: 0;
+    }
+
+    .card-header .card-title {
+        flex: 1;
+    }
+
+    .card-header-actions {
+        margin-left: auto;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-4);
+        border: 2px dashed var(--border);
+        margin: var(--space-4);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+        gap: var(--space-1);
+    }
+
+    .drop-zone:hover {
+        border-color: var(--primary);
+        background: var(--surface-alt);
+    }
+
+    .drop-zone.drag-over {
+        border-color: var(--primary);
+        background: var(--primary-muted);
+    }
+
+    .drop-zone.has-file {
+        border-style: solid;
+        border-color: var(--primary-dark);
+        background: var(--primary-muted);
+    }
+
+    .drop-divider {
+        font-size: 10px;
+        color: var(--text-muted);
+    }
+
+    /* Upload Grid & Card (Rekon style) */
+    .upload-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    .upload-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-card);
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-sm);
+    }
+
     .card-flush {
         padding: 0 !important;
         overflow: hidden;
@@ -609,39 +629,104 @@
         gap: var(--space-4);
     }
 
-    .dropzone {
+    .btn-sm {
+        padding: var(--space-2) var(--space-4);
+        font-size: var(--text-xs);
+    }
+
+    /* Drop zone */
+    .drop-zone {
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-4);
         border: 2px dashed var(--border);
-        border-radius: var(--radius);
-        padding: var(--space-8) var(--space-4);
-        text-align: center;
+        margin: var(--space-4);
+        border-radius: var(--radius-sm);
         cursor: pointer;
         transition: var(--transition);
+        position: relative;
+        gap: var(--space-1);
+    }
+
+    .drop-zone:hover {
+        border-color: var(--primary);
         background: var(--surface-alt);
     }
 
-    .dropzone:hover,
-    .dropzone.drag-active {
+    .drop-zone.drag-over {
         border-color: var(--primary);
-        background: oklch(65% 0.18 var(--brand-h) / 0.04);
+        background: var(--primary-muted);
     }
 
-    .dropzone-icon {
-        color: var(--primary);
-        margin-bottom: var(--space-3);
-        display: flex;
-        justify-content: center;
+    .drop-zone.has-file {
+        border-style: solid;
+        border-color: var(--primary-dark);
+        background: var(--primary-muted);
     }
 
-    .dropzone-title {
+    .upload-icon,
+    .file-icon {
+        width: 32px;
+        height: 32px;
+        color: var(--text-muted);
+    }
+
+    .drop-text {
+        font-size: var(--text-xs);
+        color: var(--text-muted);
+        text-align: center;
+    }
+
+    .file-name {
+        font-size: var(--text-sm);
         font-weight: 700;
-        font-size: var(--text-base);
-        margin-bottom: var(--space-1);
         color: var(--text);
     }
 
-    .dropzone-hint {
-        color: var(--text-muted);
-        font-size: var(--text-sm);
+    .file-count {
+        font-size: 10px;
+        color: var(--primary-dark);
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.5);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .upload-error {
+        font-size: var(--text-xs);
+        color: var(--danger);
+        background: rgba(220, 38, 38, 0.08);
+        border-radius: 6px;
+        padding: 0.3rem 0.65rem;
+        margin: 0 var(--space-4) var(--space-4) var(--space-4);
+    }
+
+    /* Processing bar */
+    .processing-bar {
+        width: 100%;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+    .processing-fill {
+        height: 100%;
+        width: 40%;
+        background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        border-radius: 2px;
+        animation: slide 1s ease-in-out infinite alternate;
+    }
+    @keyframes slide {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(300%); }
+    }
+
+    /* File input hidden */
+    .file-input {
+        display: none;
     }
 
     /* File list */
@@ -649,55 +734,53 @@
         display: flex;
         flex-direction: column;
         gap: var(--space-2);
+        padding: 0 var(--space-4) var(--space-4);
     }
 
     .file-row {
         display: flex;
         align-items: center;
         gap: var(--space-3);
-        padding: var(--space-3) var(--space-4);
-        border-radius: var(--radius-sm);
+        padding: var(--space-2) var(--space-3);
+        background: var(--surface);
         border: 1px solid var(--border);
-        background: var(--surface-alt);
-        transition: var(--transition);
+        border-radius: var(--radius-sm);
     }
 
-    .file-icon {
-        color: var(--text-muted);
-        flex-shrink: 0;
-    }
-
-    .file-name {
+    .file-row .file-name {
         flex: 1;
         font-size: var(--text-sm);
         font-weight: 600;
+        color: var(--text);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .file-size {
-        font-size: var(--text-xs);
+    .file-row .file-size {
+        font-size: 10px;
         color: var(--text-muted);
         flex-shrink: 0;
     }
 
     .file-remove {
-        background: transparent;
+        width: 24px;
+        height: 24px;
         border: none;
+        background: transparent;
         color: var(--text-muted);
         cursor: pointer;
-        padding: var(--space-1);
-        border-radius: var(--radius-sm);
-        transition: var(--transition);
+        border-radius: 4px;
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: var(--transition);
+        flex-shrink: 0;
     }
 
     .file-remove:hover {
-        color: var(--error);
-        background: oklch(65% 0.2 25 / 0.1);
+        color: var(--danger);
+        background: rgba(220, 38, 38, 0.1);
     }
 
     /* Extract controls */
@@ -705,7 +788,7 @@
         display: flex;
         align-items: center;
         gap: var(--space-4);
-        margin-top: var(--space-2);
+        padding: 0 var(--space-4) var(--space-4);
     }
 
     .btn-run {
@@ -715,9 +798,8 @@
     }
 
     .status-text {
-        font-size: var(--text-sm);
+        font-size: var(--text-xs);
         color: var(--text-muted);
-        font-weight: 500;
     }
 
     /* Spinner */
@@ -734,15 +816,6 @@
         to {
             transform: rotate(360deg);
         }
-    }
-
-    .card-header {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        padding: var(--space-3) var(--space-4);
-        background: var(--surface-alt);
-        border-bottom: 1px solid var(--border);
     }
 
     /* Results */
