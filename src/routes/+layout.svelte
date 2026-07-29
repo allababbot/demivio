@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import "../app.css";
   import TopBar from "$lib/components/TopBar.svelte";
 
@@ -10,7 +11,7 @@
   }
 </script>
 
-<TopBar onHelpClick={handleHelpClick} />
+<TopBar onHelpClick={handleHelpClick} home={$page.url.pathname === '/'} />
 
 <!-- Modal for Help -->
 {#if showHelp}
