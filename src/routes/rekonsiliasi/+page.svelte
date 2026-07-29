@@ -1,6 +1,5 @@
 <script lang="ts">
-  import TopBar from "$lib/components/TopBar.svelte";
-  import Navbar from "$lib/components/Navbar.svelte";
+
   import { browser } from "$app/environment";
   import * as XLSX from "xlsx";
 
@@ -489,8 +488,6 @@
 </script>
 
 <div class="container animate-in">
-  <Navbar />
-
   <div class="rekon-dashboard">
     <!-- Upload Section -->
     <div class="upload-grid">

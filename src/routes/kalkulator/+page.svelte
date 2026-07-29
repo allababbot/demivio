@@ -9,7 +9,7 @@
     import ParametersPanel from "$lib/components/ParametersPanel.svelte";
     import ResultsTable from "$lib/components/ResultsTable.svelte";
     import ProgressBar from "$lib/components/ProgressBar.svelte";
-    import Navbar from "$lib/components/Navbar.svelte";
+
     import HistoryPanel from "$lib/components/HistoryPanel.svelte";
     import { onMount, onDestroy } from "svelte";
     import { browser } from "$app/environment";
@@ -411,7 +411,6 @@
 </script>
 
 <div class="container animate-in">
-    <Navbar />
     <div class="dashboard-grid">
         <!-- SIDEBAR: Inputs -->
         <aside class="sidebar">

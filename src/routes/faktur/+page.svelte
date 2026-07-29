@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Navbar from "$lib/components/Navbar.svelte";
+
     import { extractPdfTextLocal, parseFakturText } from "$lib/faktur/parser";
     import { toExcelRows } from "$lib/faktur/formatter";
     import type { FakturData } from "$lib/faktur/types";
@@ -138,8 +138,6 @@
 </svelte:head>
 
 <div class="container animate-in">
-    <Navbar />
-
     <!-- Upload Section -->
     {#if results.length === 0}
         <div class="card card-flush upload-card fade-in">

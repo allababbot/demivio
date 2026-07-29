@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Navbar from "$lib/components/Navbar.svelte";
+
     import { parseBppuText, extractPdfTextLocal } from "$lib/bppu/parser";
     import { fileSizeLabel, toCSV, fmtRp, toExcelRows } from "$lib/bppu/formatter";
     import type { BppuResult, BppuData, ObjekPajak } from "$lib/bppu/types";
@@ -133,8 +133,6 @@
 </svelte:head>
 
 <div class="container animate-in">
-    <Navbar />
-
     <!-- Upload Section -->
     {#if results.length === 0}
         <div class="card card-flush upload-card fade-in">
