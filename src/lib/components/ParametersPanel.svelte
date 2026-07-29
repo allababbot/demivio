@@ -85,7 +85,6 @@
 <style>
   .parameters-card {
     background: var(--surface);
-    margin-bottom: var(--space-2);
     padding: 0;
     overflow: hidden;
   }

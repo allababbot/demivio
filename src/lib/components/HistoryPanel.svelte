@@ -43,6 +43,7 @@
 <div class="history-wrapper">
   <button
     class="btn btn-sm btn-outline"
+    style="border-radius: var(--radius-card)"
     on:click={() => {
       open = !open;
       if (open) refresh();

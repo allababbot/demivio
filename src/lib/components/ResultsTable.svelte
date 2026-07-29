@@ -119,7 +119,23 @@
                   </button>
                 </div>
               </td>
-              <td class="monospaced">{formatNumber(result.transaction.quantity)}</td>
+              <td class="monospaced">
+                <div class="cell-with-copy">
+                  <span class="monospaced">{formatNumber(result.transaction.quantity)}</span>
+                  <button
+                    class="btn-copy"
+                    class:copied={copiedId === `qty-${i}`}
+                    on:click|stopPropagation={() => copyToClipboard(formatValueForCopy(result.transaction.quantity), `qty-${i}`, i)}
+                    title="Salin Kuantitas"
+                  >
+                    {#if copiedId === `qty-${i}`}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    {:else}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    {/if}
+                  </button>
+                </div>
+              </td>
               <td>
                 <div class="cell-with-copy">
                   <span class="monospaced">{formatRupiah(result.transaction.discount)}</span>
@@ -169,18 +185,22 @@
     </div>
 
     {#if totalPages > 1}
-      <footer class="table-footer">
-        <button class="btn btn-outline btn-icon" disabled={currentPage === 1} on:click={() => changePage(currentPage - 1)}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          <span>Sebelumnya</span>
-        </button>
-        <div class="pagination-info">
-          Halaman <span class="current">{currentPage}</span> dari <span class="total">{totalPages}</span>
+      <footer class="card-header table-footer">
+        <div class="card-header-main">
+          <div class="pagination-info">
+            Halaman <span class="current">{currentPage}</span> dari <span class="total">{totalPages}</span>
+          </div>
         </div>
-        <button class="btn btn-outline btn-icon" disabled={currentPage === totalPages} on:click={() => changePage(currentPage + 1)}>
-          <span>Selanjutnya</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        </button>
+        <div class="card-header-actions">
+          <button class="btn btn-outline btn-icon" disabled={currentPage === 1} on:click={() => changePage(currentPage - 1)}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <span>Sebelumnya</span>
+          </button>
+          <button class="btn btn-outline btn-icon" disabled={currentPage === totalPages} on:click={() => changePage(currentPage + 1)}>
+            <span>Selanjutnya</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
       </footer>
     {/if}
   {:else if !simRunning}
@@ -350,17 +370,40 @@
   }
 
   .table-footer {
-    padding: var(--space-4) var(--space-6);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--surface-alt);
     border-top: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  .table-footer .btn-icon {
+    height: var(--card-header-height);
+    border: none;
+    border-radius: 0;
+    padding: 0 var(--space-4);
+    background: transparent;
+    color: var(--text-muted);
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  .table-footer .btn-icon:hover:not(:disabled) {
+    background: var(--surface);
+    color: var(--primary);
+    transform: none;
+    box-shadow: none;
+  }
+
+  .table-footer .btn-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .pagination-info {
     font-size: var(--text-sm);
     color: var(--text-muted);
+    padding: 0 var(--space-4);
   }
 
   .pagination-info .current {

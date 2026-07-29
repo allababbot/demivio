@@ -106,7 +106,7 @@ button, input, select, textarea {
 .dashboard-grid {
   display: grid;
   grid-template-columns: 360px 1fr;
-  gap: var(--space-6);
+  gap: var(--space-4);
   flex: 1;
   min-height: 0;
 }

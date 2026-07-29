@@ -469,9 +469,9 @@
                         <button class="btn btn-outline btn-cancel" on:click={handleCancel}> Batal </button>
                     {/if}
                 </div>
-            </div>
 
-            <HistoryPanel on:load={(e) => handleLoadHistory(e.detail)} />
+                <HistoryPanel on:load={(e) => handleLoadHistory(e.detail)} />
+            </div>
         </aside>
 
         <!-- MAIN CONTENT: Results -->
@@ -512,13 +512,12 @@
     .input-stack {
         display: flex;
         flex-direction: column;
-        gap: var(--space-2);
+        gap: var(--space-4);
     }
 
     .action-row {
         display: flex;
         gap: var(--space-3);
-        margin-top: var(--space-2);
     }
 
     .btn-run {
@@ -526,6 +525,7 @@
         height: 48px;
         font-weight: 700;
         gap: var(--space-2);
+        border-radius: var(--radius-card);
     }
 
     .btn-cancel {
