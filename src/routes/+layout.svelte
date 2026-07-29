@@ -4,7 +4,7 @@
   import TopBar from "$lib/components/TopBar.svelte";
 
   let showHelp = false;
-  let activeHelpTab: "kalkulator" | "rekonsiliasi" | "bppu" | "faktur" = "kalkulator";
+  let activeHelpTab: "kalkulator" | "rekonsiliasi" | "ekstraktor" = "kalkulator";
 
   function handleHelpClick() {
     showHelp = true;
@@ -49,17 +49,10 @@
           </button>
           <button
             class="help-tab"
-            class:active={activeHelpTab === "bppu"}
-            on:click={() => (activeHelpTab = "bppu")}
+            class:active={activeHelpTab === "ekstraktor"}
+            on:click={() => (activeHelpTab = "ekstraktor")}
           >
-            BPPU
-          </button>
-          <button
-            class="help-tab"
-            class:active={activeHelpTab === "faktur"}
-            on:click={() => (activeHelpTab = "faktur")}
-          >
-            Faktur
+            Ekstraktor
           </button>
         </div>
 
@@ -156,80 +149,42 @@
               >
             </p>
           </div>
-        {:else if activeHelpTab === "bppu"}
+        {:else if activeHelpTab === "ekstraktor"}
           <div class="help-tab-content">
             <p>
-              <strong>BPPU Extractor</strong> mengekstrak data terstruktur dari file PDF
-              Bukti Pemotongan/Pemungutan Unifikasi (BPPU) Coretax.
+              <strong>Ekstraktor</strong> mengekstrak data terstruktur dari file PDF dokumen pajak.
+              Pilih format dokumen terlebih dahulu — <strong>BPPU</strong> untuk Bukti Pemotongan/Pemungutan
+              Unifikasi, atau <strong>Faktur Pajak</strong> untuk e-Faktur DJP.
             </p>
 
             <h3>Langkah-langkah:</h3>
             <ol>
               <li>
+                <strong>Pilih Format Dokumen:</strong> Gunakan dropdown untuk memilih antara
+                BPPU atau Faktur Pajak. Area upload baru aktif setelah format dipilih.
+              </li>
+              <li>
                 <strong>Pilih File PDF:</strong> Drag & drop atau klik untuk memilih satu
-                atau lebih file PDF BPPU Coretax.
+                atau lebih file PDF.
               </li>
               <li>
                 <strong>Ekstrak:</strong> Klik tombol "Ekstrak". Sistem akan membaca setiap
-                PDF dan mengekstrak identitas penerima, pemotong, dan seluruh objek pajak
-                (kode, DPP, tarif, PPh).
+                PDF dan mengekstrak data sesuai format yang dipilih.
               </li>
               <li>
                 <strong>Periksa Hasil:</strong> Hasil ditampilkan per tab untuk setiap file.
-                Lihat ringkasan total DPP dan PPh di bagian atas.
+                Data BPPU menampilkan identitas penerima, pemotong, dan objek pajak.
+                Data Faktur menampilkan penjual, pembeli, dan daftar barang/jasa.
               </li>
               <li>
                 <strong>Export Excel:</strong> Klik tombol "Excel" untuk mengunduh hasil per
-                file, atau "Export Semua Excel" untuk menggabungkan semua file ke satu
-                spreadsheet.
+                file, atau "Export Semua Excel" untuk menggabungkan semua file ke satu spreadsheet.
               </li>
             </ol>
 
-            <p
-              style="margin-top: 1rem; font-size: 0.9em; color: var(--text-muted);"
-            >
-              <em
-                >Tip: File PDF BPPU adalah file yang diunduh dari sistem Coretax DJP.
-                Pastikan file tidak dipassword sebelum diunggah.</em
-              >
-            </p>
-          </div>
-        {:else if activeHelpTab === "faktur"}
-          <div class="help-tab-content">
-            <p>
-              <strong>Faktur Extractor</strong> mengekstrak data terstruktur dari file PDF
-              e-Faktur (Faktur Pajak keluaran dari sistem DJP).
-            </p>
-
-            <h3>Langkah-langkah:</h3>
-            <ol>
-              <li>
-                <strong>Pilih File PDF:</strong> Drag & drop atau klik untuk memilih satu
-                atau lebih file PDF e-Faktur.
-              </li>
-              <li>
-                <strong>Ekstrak:</strong> Klik tombol "Ekstrak". Sistem akan membaca setiap
-                PDF dan mengambil data penjual, pembeli, nomor seri faktur, tanggal, referensi,
-                serta seluruh baris barang/jasa.
-              </li>
-              <li>
-                <strong>Periksa Hasil:</strong> Hasil ditampilkan per tab untuk setiap file.
-                Data barang/jasa ditampilkan dengan pagination untuk kemudahan navigasi.
-              </li>
-              <li>
-                <strong>Export Excel:</strong> Klik tombol "Excel" untuk mengunduh hasil per
-                file (satu baris per barang/jasa), atau "Export Semua Excel" untuk
-                menggabungkan semua file ke satu spreadsheet.
-              </li>
-            </ol>
-
-            <p
-              style="margin-top: 1rem; font-size: 0.9em; color: var(--text-muted);"
-            >
-              <em
-                >Tip: Format tanggal otomatis dikonversi ke DD/MM/YYYY saat export Excel.
-                Nama barang multi-baris (word-wrap) di PDF juga akan tergabung dengan benar.</em
-              >
+            <p style="margin-top: 1rem; font-size: 0.9em; color: var(--text-muted);">
+              <em>Tip: Setelah melihat hasil, klik "Upload Lagi" untuk memproses file baru —
+              format yang dipilih akan tetap diingat.</em>
             </p>
           </div>
         {/if}

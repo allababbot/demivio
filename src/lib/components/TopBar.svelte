@@ -8,16 +8,14 @@
   const navLinks = [
     { href: "/kalkulator", label: "Kalkulator PPN" },
     { href: "/rekonsiliasi", label: "Rekonsiliasi" },
-    { href: "/bppu", label: "BPPU" },
-    { href: "/faktur", label: "Faktur" },
+    { href: "/ekstraktor", label: "Ekstraktor" },
   ];
 
   function isActive(href: string) {
     const path = $page.url.pathname;
     if (path === "/") return false;
-    if (href === "/kalkulator") {
-      return path === "/kalkulator";
-    }
+    if (href === "/kalkulator") return path === "/kalkulator";
+    if (href === "/ekstraktor") return path === "/ekstraktor" || path === "/bppu" || path === "/faktur";
     return path.startsWith(href);
   }
 </script>
