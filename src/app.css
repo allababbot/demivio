@@ -25,7 +25,7 @@
   
   --bg: oklch(99% 0.01 var(--brand-h));
   --surface: oklch(100% 0 var(--brand-h));
-  --surface-alt: oklch(97% 0.01 var(--brand-h));
+  --surface-alt: oklch(94% 0.02 var(--brand-h));
   
   --text: oklch(25% 0.02 var(--brand-h));
   --text-muted: oklch(50% 0.02 var(--brand-h));
