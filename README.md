@@ -9,7 +9,7 @@ Demivio adalah sekumpulan utilitas berbasis web untuk mempercepat dan mengotomas
 Simulasi cerdas untuk menemukan kombinasi Harga Satuan, Kuantitas, dan Potongan/Diskon yang menghasilkan target PPN tertentu.
 
 - **Reverse calculation** — menghitung mundur dari target PPN ke komponen harga yang sesuai.
-- **High performance** — menggunakan Web Workers untuk mengeksplorasi hingga 5 juta kombinasi tanpa membekukan browser.
+- **High performance** — menggunakan Web Workers untuk mengeksplorasi kombinasi dalam jumlah besar tanpa membekukan browser.
 - **Kustomisasi parameter** — atur rentang toleransi selisih PPN, batas rentang pencarian, atau kunci (lock) nilai tertentu agar tidak ikut dicari.
 
 ### 2. Rekonsiliasi Penjualan
@@ -74,8 +74,9 @@ Mengekstrak data terstruktur dari file PDF Bukti Pemotongan/Pemungutan Unifikasi
 - **pdfjs-dist** — ekstraksi teks dari PDF di sisi klien
 - **Web Workers** — komputasi berat di background thread
 - **Decimal.js** — kalkulasi finansial presisi tinggi
-- **PapaParse** — parsing & export CSV
 - **SheetJS (xlsx)** — export Excel
+- **IndexedDB** — caching hasil simulasi di browser
+- **@vercel/analytics** — analytics
 
 ## Menjalankan Secara Lokal
 
