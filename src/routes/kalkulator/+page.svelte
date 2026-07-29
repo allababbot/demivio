@@ -268,7 +268,7 @@
         simEstimate = estimateCombinationsSimple(decimalConfig);
 
         // Parallel worker execution
-        activeWorkers = workers.length;
+        activeWorkers = 0;
         progressMap = new Map<number, number>();
         pendingWorkers = 0;
         let workerResults: SerializableSimulationResult[][] = Array(workers.length).fill([]);
@@ -281,11 +281,6 @@
 
             // If startQty already exceeds quantityMax, this worker has no work to do
             if (startQty > baseConfig.quantityMax) {
-                activeWorkers--;
-                // If this was the last worker to "complete" (due to no work), finalize results
-                if (activeWorkers === 0) {
-                    finalizeSimulation(workerResults, startTime, baseConfig, genId);
-                }
                 return;
             }
 
