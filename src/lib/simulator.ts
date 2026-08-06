@@ -281,8 +281,9 @@ export function runSimulation(
   onProgress?: (progress: number) => void,
   onResult?: (result: SimulationResult) => void,
   shouldCancel?: () => boolean,
-): SimulationResult[] {
+): { results: SimulationResult[]; fallback: SimulationResult[] } {
   const results: SimulationResult[] = [];
+  const fallback: SimulationResult[] = []; // best candidates outside tolerance
   const seen = new Set<string>(); // Option A: O(1) deduplication
 
   // Get ranges
@@ -325,6 +326,9 @@ export function runSimulation(
 
   // Standard iteration for smaller searches, priority for larger
   const processQtyUnitPrice = (quantity: Decimal, unitPrice: Decimal): void => {
+    // No valid result possible if price is below minimum
+    if (unitPrice.lt(new Decimal(1))) return;
+
     const exactDiscount = calculateRequiredDiscount(config.targetPpn, unitPrice, quantity);
     const roundedDiscount = roundToStep(exactDiscount, config.discountStep);
 
@@ -365,6 +369,9 @@ export function runSimulation(
   };
 
   const processPriceDiscount = (unitPrice: Decimal, discount: Decimal): void => {
+    // No valid result possible if price is below minimum
+    if (unitPrice.lt(new Decimal(1))) return;
+
     const exactQty = calculateRequiredQuantity(config.targetPpn, unitPrice, discount);
     const roundedQty = roundToStep(exactQty, config.quantityStep);
 
@@ -400,6 +407,10 @@ export function runSimulation(
 
   const processQtyDiscount = (quantity: Decimal, discount: Decimal): void => {
     const exactUnitPrice = calculateRequiredUnitPrice(config.targetPpn, quantity, discount);
+
+    // No valid result possible if the required price is below minimum
+    if (exactUnitPrice.lt(new Decimal(1))) return;
+
     const roundedUnitPrice = roundToStep(exactUnitPrice, config.priceStep);
 
     const pricesToTry = [
@@ -413,7 +424,7 @@ export function runSimulation(
     }
 
     for (const unitPrice of pricesToTry) {
-      if (unitPrice.lt(priceMin) || unitPrice.gt(priceMax) || unitPrice.lte(0)) {
+      if (unitPrice.lt(new Decimal(1)) || unitPrice.lt(priceMin) || unitPrice.gt(priceMax)) {
         continue;
       }
 
@@ -546,7 +557,86 @@ export function runSimulation(
 
   // Sort by score (ascending) and take top N
   results.sort((a, b) => a.score.cmp(b.score));
-  return results.slice(0, config.topNResults);
+
+  // If no results within tolerance, collect best candidates outside tolerance
+  // by computing exact values anchored on reference parameters.
+  // Respects locks: a scenario is only attempted if the variable being solved is NOT locked.
+  if (results.length === 0) {
+    const ref = config.referenceTransaction;
+
+    // Helper: try a (qty, discount) pair, compute exact price, add to fallback
+    const tryFallback = (quantity: Decimal, discount: Decimal) => {
+      if (quantity.lte(0)) return;
+      if (discount.lt(new Decimal(0))) return;
+
+      const exactPrice = calculateRequiredUnitPrice(config.targetPpn, quantity, discount);
+      if (exactPrice.lt(new Decimal(1))) return;
+
+      // Try exact and rounded-to-step prices
+      const rounded = roundToStep(exactPrice, config.priceStep);
+      const candidates = [exactPrice];
+      if (!rounded.eq(exactPrice)) {
+        candidates.push(rounded, rounded.add(config.priceStep), rounded.sub(config.priceStep));
+      }
+
+      for (const price of candidates) {
+        if (price.lt(new Decimal(1))) continue;
+        const key = createTransactionKey(price, quantity, discount);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const transaction: Transaction = { unitPrice: price, quantity, discount };
+        if (validateTransaction(transaction) !== null) continue;
+        const result = createResult(transaction, config.targetPpn, ref, config.alpha, config.beta);
+        fallback.push(result);
+      }
+    };
+
+    // Scenario A: anchor on ref qty and ref discount, vary price
+    // Only when price is NOT locked
+    if (!priceLocked) {
+      tryFallback(ref.quantity, ref.discount);
+    }
+
+    // Scenario B: anchor on ref price and ref qty, vary discount
+    // Only when discount is NOT locked
+    if (!discountLocked) {
+      const exactDiscount = calculateRequiredDiscount(config.targetPpn, ref.unitPrice, ref.quantity);
+      const rounded = roundToStep(exactDiscount, config.discountStep);
+      for (const d of [exactDiscount, rounded, rounded.add(config.discountStep), rounded.sub(config.discountStep)]) {
+        if (d.lt(new Decimal(0))) continue;
+        const key = createTransactionKey(ref.unitPrice, ref.quantity, d);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const transaction: Transaction = { unitPrice: ref.unitPrice, quantity: ref.quantity, discount: d };
+        if (validateTransaction(transaction) !== null) continue;
+        const result = createResult(transaction, config.targetPpn, ref, config.alpha, config.beta);
+        fallback.push(result);
+      }
+    }
+
+    // Scenario C: anchor on ref price and ref discount, vary qty
+    // Only when qty is NOT locked
+    if (!qtyLocked) {
+      const exactQty = calculateRequiredQuantity(config.targetPpn, ref.unitPrice, ref.discount);
+      const rounded = roundToStep(exactQty, config.quantityStep);
+      for (const q of [exactQty, rounded, rounded.add(config.quantityStep), rounded.sub(config.quantityStep)]) {
+        if (q.lte(0)) continue;
+        const key = createTransactionKey(ref.unitPrice, q, ref.discount);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const transaction: Transaction = { unitPrice: ref.unitPrice, quantity: q, discount: ref.discount };
+        if (validateTransaction(transaction) !== null) continue;
+        const result = createResult(transaction, config.targetPpn, ref, config.alpha, config.beta);
+        fallback.push(result);
+      }
+    }
+
+    fallback.sort((a, b) => a.ppnDifference.cmp(b.ppnDifference));
+    // Keep only candidates within the same tolerance as the main search
+    fallback.splice(0, fallback.length, ...fallback.filter(r => r.ppnDifference.lte(config.tolerance)));
+  }
+
+  return { results: results.slice(0, config.topNResults), fallback: fallback.slice(0, config.topNResults) };
 }
 
 /**

@@ -53,8 +53,8 @@ export function validateTransaction(transaction: Transaction): string | null {
   if (transaction.unitPrice.isNaN() || transaction.quantity.isNaN() || transaction.discount.isNaN()) {
     return 'Input tidak valid (Bukan Angka)';
   }
-  if (transaction.unitPrice.lte(0)) {
-    return 'Harga satuan harus positif';
+  if (transaction.unitPrice.lt(1)) {
+    return 'Harga satuan minimal 1';
   }
   if (transaction.quantity.lte(0)) {
     return 'Kuantitas harus positif';

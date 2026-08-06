@@ -63,7 +63,9 @@
 
     // Simulation state
     let simResults: SerializableSimulationResult[] = [];
+    let simFallback: SerializableSimulationResult[] = [];
     let simError: string | null = null;
+    let simUnlockHint: string | null = null;
     let simRunning = false;
     let simProgress = 0;
     let simEstimate = 0;
@@ -73,7 +75,6 @@
     // Track workers that are still active (including those that have completed but not yet finalized)
     let activeWorkers = 0;
     let pendingWorkers = 0; // Workers that have been started but not yet completed
-    let hasResultBeenCalled = false; // Track if result callback has been called for this generation
     let progressMap = new Map<number, number>();
 
     // Web Workers
@@ -128,16 +129,23 @@
         if (genId !== currentGenerationId) return;
 
         const allResults = workerResults.flat();
-        const uniqueResults = Array.from(
-            new Map(
-                allResults.map((r) => [
-                    `${r.transaction.unitPrice}|${r.transaction.quantity}|${r.transaction.discount}`,
-                    r,
-                ]),
-            ).values(),
-        );
 
-        uniqueResults.sort((a, b) => {
+        // Separate in-tolerance from out-of-tolerance (fallback) results
+        const inTolerance = allResults.filter((r) => !r.outOfTolerance);
+        const outTolerance = allResults.filter((r) => r.outOfTolerance);
+
+        const dedup = (arr: SerializableSimulationResult[]) =>
+            Array.from(
+                new Map(
+                    arr.map((r) => [
+                        `${r.transaction.unitPrice}|${r.transaction.quantity}|${r.transaction.discount}`,
+                        r,
+                    ]),
+                ).values(),
+            );
+
+        const uniqueIn = dedup(inTolerance);
+        uniqueIn.sort((a, b) => {
             const aPerfect = a.ppnDifference === 0;
             const bPerfect = b.ppnDifference === 0;
             if (aPerfect && !bPerfect) return -1;
@@ -145,15 +153,33 @@
             return a.score - b.score;
         });
 
-        simResults = uniqueResults.slice(0, topN);
         simElapsed = performance.now() - startTime;
         simRunning = false;
         simProgress = 1;
 
-        if (simResults.length === 0) {
-            simError = "Tidak ditemukan hasil dalam toleransi yang ditentukan.";
-        } else {
+        if (uniqueIn.length > 0) {
+            simResults = uniqueIn.slice(0, topN);
+            simError = null;
+            simUnlockHint = null;
             saveToCache(baseConfig, simResults).catch(console.error);
+        } else {
+            simResults = [];
+            simError = null;
+            // Show best out-of-tolerance candidates sorted by smallest ppnDifference
+            const uniqueOut = dedup(outTolerance);
+            uniqueOut.sort((a, b) => a.ppnDifference - b.ppnDifference);
+            simFallback = uniqueOut.slice(0, topN);
+
+            // Build unlock hint only if some parameters are locked and no fallback was found
+            if (simFallback.length === 0 && (isPriceLocked || isQtyLocked || isDiscountLocked)) {
+                const locked: string[] = [];
+                if (isPriceLocked) locked.push("harga satuan");
+                if (isQtyLocked) locked.push("kuantitas");
+                if (isDiscountLocked) locked.push("potongan");
+                simUnlockHint = `Tidak ada kombinasi yang ditemukan. Coba buka kunci ${locked.join(", ")} untuk memperluas pencarian.`;
+            } else {
+                simUnlockHint = null;
+            }
         }
     }
 
@@ -184,7 +210,9 @@
         }
 
         simError = null;
+        simUnlockHint = null;
         simResults = [];
+        simFallback = [];
         simRunning = true;
         simProgress = 0;
         simElapsed = 0;
@@ -367,6 +395,8 @@
         // Update state
         simRunning = false;
         simProgress = 0;
+        simFallback = [];
+        simUnlockHint = null;
         // Reset progress tracking for next simulation
         if (progressMap) progressMap.clear();
     }
@@ -389,7 +419,9 @@
 
         // Restore results
         simResults = entry.results;
+        simFallback = [];
         simError = null;
+        simUnlockHint = null;
         simElapsed = 0;
         simRunning = false;
         simProgress = 0;
@@ -495,7 +527,25 @@
                 </div>
             {/if}
 
-            <ResultsTable results={simResults} {simElapsed} {simRunning} />
+            {#if simUnlockHint}
+                <div class="error-panel error-full hint-panel animate-in">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg
+                    >
+                    <p>{simUnlockHint}</p>
+                </div>
+            {/if}
+
+            <ResultsTable results={simResults} fallback={simFallback} {simElapsed} {simRunning} />
         </main>
     </div>
 </div>
@@ -562,6 +612,18 @@
     .error-full p {
         margin: 0;
         font-weight: 500;
+    }
+
+    .hint-panel {
+        background: oklch(96% 0.05 75);
+        border-color: oklch(80% 0.12 75);
+        color: oklch(45% 0.14 65);
+    }
+
+    :global([data-theme="dark"]) .hint-panel {
+        background: oklch(22% 0.06 75);
+        border-color: oklch(40% 0.10 75);
+        color: oklch(80% 0.10 75);
     }
 
     .spinner {

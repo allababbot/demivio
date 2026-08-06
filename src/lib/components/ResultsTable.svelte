@@ -5,19 +5,25 @@
   import { browser } from "$app/environment";
 
   export let results: SerializableSimulationResult[] = [];
+  export let fallback: SerializableSimulationResult[] = [];
   export let simElapsed: number = 0;
   export let simRunning: boolean = false;
 
-  // Pagination
+  // Combine for display: normal results first, then fallback (if no normal results)
+  $: displayResults = results.length > 0 ? results : [];
+  $: hasFallback = results.length === 0 && fallback.length > 0;
+
+  // Pagination — paginate over whichever list is shown
+  $: activeList = hasFallback ? fallback : displayResults;
   let currentPage = 1;
   const itemsPerPage = 10;
-  $: paginatedResults = results.slice(
+  $: paginatedResults = activeList.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
-  $: totalPages = Math.ceil(results.length / itemsPerPage);
-  $: if (results) currentPage = 1; // Reset page when results change
-  $: if (results || currentPage) selectedRowIndex = null;
+  $: totalPages = Math.ceil(activeList.length / itemsPerPage);
+  $: if (activeList) currentPage = 1;
+  $: if (activeList || currentPage) selectedRowIndex = null;
 
   function changePage(newPage: number) {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -56,17 +62,17 @@
   <header class="card-header">
     <div class="card-header-main">
       <h2 class="card-title">Hasil Pencarian</h2>
-      <span class="results-count">{results.length} temuan</span>
+      <span class="results-count">{activeList.length} temuan</span>
       {#if simElapsed > 0}
         <span class="elapsed-time">dalam {formatElapsed(simElapsed)}</span>
       {/if}
     </div>
     
-    {#if results.length > 0}
+    {#if activeList.length > 0}
       <div class="card-header-actions">
         <button
           class="btn btn-outline btn-export"
-          on:click={() => exportResultsToExcel(results, "demivio-kalkulator.xlsx")}
+          on:click={() => exportResultsToExcel(activeList, "demivio-kalkulator.xlsx")}
           title="Export ke Excel (Ctrl+E)"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -76,7 +82,14 @@
     {/if}
   </header>
 
-  {#if results.length > 0}
+  {#if hasFallback}
+    <div class="fallback-notice">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Berikut kombinasi terdekat di luar toleransi — parameter tidak cocok, tapi ini yang paling mendekati target PPN.
+    </div>
+  {/if}
+
+  {#if activeList.length > 0}
     <div class="table-container">
       <table>
         <thead>
@@ -277,6 +290,22 @@
 
   tr.selected {
     background: var(--primary-muted);
+  }
+
+  .fallback-notice {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--bg);
+    background: var(--text);
+    border-bottom: 1px solid var(--border-strong);
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .fallback-notice svg {
+    flex-shrink: 0;
+    color: var(--bg);
   }
 
   .monospaced {

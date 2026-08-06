@@ -60,6 +60,8 @@ export interface SerializableSimulationResult {
   score: number;
   humanScore: SerializableHumanScore;
   metadata: SerializableResultMetadata;
+  /** True when this result is outside the tolerance threshold (fallback suggestion) */
+  outOfTolerance?: boolean;
 }
 
 /**

@@ -114,7 +114,7 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       const estimate = estimateCombinations(config);
 
       // Run simulation with progress, result, and cancel callbacks
-      const results = runSimulation(
+      const { results, fallback } = runSimulation(
         config, 
         (progress) => {
           postResponse({ 
@@ -162,9 +162,11 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
 
       // Serialize and send final results summary
       const elapsed = performance.now() - startTime;
+      const serializedResults = results.map(serializeResult);
+      const serializedFallback = fallback.map(r => ({ ...serializeResult(r), outOfTolerance: true as const }));
       postResponse({
         type: 'result',
-        results: results.map(serializeResult),
+        results: [...serializedResults, ...serializedFallback],
         elapsed,
         generationId: genId
       });
