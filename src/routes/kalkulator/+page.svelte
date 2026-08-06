@@ -127,42 +127,34 @@
         // Only process if this is the latest generation
         if (genId !== currentGenerationId) return;
 
-        // Count how many workers have actually returned results
-        const workersWithResults = workerResults.filter((r) => r && r.length > 0).length;
+        const allResults = workerResults.flat();
+        const uniqueResults = Array.from(
+            new Map(
+                allResults.map((r) => [
+                    `${r.transaction.unitPrice}|${r.transaction.quantity}|${r.transaction.discount}`,
+                    r,
+                ]),
+            ).values(),
+        );
 
-        // If we have at least one worker with results, finalize
-        if (workersWithResults > 0) {
-            const allResults = workerResults.flat();
-            const uniqueResults = Array.from(
-                new Map(
-                    allResults.map((r) => [
-                        `${r.transaction.unitPrice}|${r.transaction.quantity}|${r.transaction.discount}`,
-                        r,
-                    ]),
-                ).values(),
-            );
+        uniqueResults.sort((a, b) => {
+            const aPerfect = a.ppnDifference === 0;
+            const bPerfect = b.ppnDifference === 0;
+            if (aPerfect && !bPerfect) return -1;
+            if (!aPerfect && bPerfect) return 1;
+            return a.score - b.score;
+        });
 
-            uniqueResults.sort((a, b) => {
-                const aPerfect = a.ppnDifference === 0;
-                const bPerfect = b.ppnDifference === 0;
-                if (aPerfect && !bPerfect) return -1;
-                if (!aPerfect && bPerfect) return 1;
-                return a.score - b.score;
-            });
+        simResults = uniqueResults.slice(0, topN);
+        simElapsed = performance.now() - startTime;
+        simRunning = false;
+        simProgress = 1;
 
-            simResults = uniqueResults.slice(0, topN);
-            simElapsed = performance.now() - startTime;
-            simRunning = false;
-            simProgress = 1;
-
-            if (simResults.length === 0) {
-                simError = "Tidak ditemukan hasil dalam toleransi yang ditentukan.";
-            } else {
-                saveToCache(baseConfig, simResults).catch(console.error);
-            }
+        if (simResults.length === 0) {
+            simError = "Tidak ditemukan hasil dalam toleransi yang ditentukan.";
+        } else {
+            saveToCache(baseConfig, simResults).catch(console.error);
         }
-        // If no workers returned results but we still have pending workers, check if they're stuck
-        // This handles edge case where cancellation might have left some workers pending
     }
 
     async function handleSimulate() {
