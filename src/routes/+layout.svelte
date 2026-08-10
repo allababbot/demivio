@@ -4,7 +4,7 @@
   import TopBar from "$lib/components/TopBar.svelte";
 
   let showHelp = false;
-  let activeHelpTab: "kalkulator" | "rekonsiliasi" | "ekstraktor" = "kalkulator";
+  let activeHelpTab: "kalkulator" | "rekonsiliasi" | "mutasi-bank" | "ekstraktor" = "kalkulator";
 
   function handleHelpClick() {
     showHelp = true;
@@ -46,6 +46,13 @@
             on:click={() => (activeHelpTab = "rekonsiliasi")}
           >
             Rekonsiliasi
+          </button>
+          <button
+            class="help-tab"
+            class:active={activeHelpTab === "mutasi-bank"}
+            on:click={() => (activeHelpTab = "mutasi-bank")}
+          >
+            Mutasi Bank
           </button>
           <button
             class="help-tab"
@@ -148,6 +155,34 @@
                 untuk mencari ketidaksesuaian tertinggi dengan cepat.</em
               >
             </p>
+          </div>
+        {:else if activeHelpTab === "mutasi-bank"}
+          <div class="help-tab-content">
+            <p>
+              <strong>Mutasi Bank</strong> mengubah raw data mutasi BCA, BNI, dan BRI
+              menjadi Excel dengan kolom standar: keterangan, tanggal, debit, kredit,
+              saldo, dan status validasi.
+            </p>
+
+            <h3>Langkah-langkah:</h3>
+            <ol>
+              <li>
+                <strong>Upload File:</strong> Drag & drop atau pilih satu atau lebih file
+                mutasi bank dalam format CSV, XLS, atau TXT.
+              </li>
+              <li>
+                <strong>Periksa Deteksi Bank:</strong> Sistem otomatis mengenali BCA, BNI,
+                atau BRI dan menampilkan preview tabel standar.
+              </li>
+              <li>
+                <strong>Isi Saldo Awal BNI:</strong> Untuk file BNI, masukkan saldo awal
+                karena file sumber tidak memuat kolom saldo berjalan.
+              </li>
+              <li>
+                <strong>Export Excel:</strong> Klik "Excel File Ini" untuk satu file atau
+                "Export Semua Excel" untuk workbook gabungan.
+              </li>
+            </ol>
           </div>
         {:else if activeHelpTab === "ekstraktor"}
           <div class="help-tab-content">

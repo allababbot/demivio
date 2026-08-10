@@ -62,6 +62,22 @@
       <span class="tool-arrow">&rarr;</span>
     </a>
 
+    <a href="/mutasi-bank" class="tool-card">
+      <div class="tool-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          <path d="M7 8h10"></path>
+          <path d="M7 12h10"></path>
+          <path d="M7 16h4"></path>
+        </svg>
+      </div>
+      <div class="tool-info">
+        <h2 class="tool-name">Mutasi Bank</h2>
+        <p class="tool-desc">Ubah raw data mutasi BCA, BNI, dan BRI menjadi Excel standar yang siap direkonsiliasi.</p>
+      </div>
+      <span class="tool-arrow">&rarr;</span>
+    </a>
+
     <a href="/bppu" class="tool-card">
       <div class="tool-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

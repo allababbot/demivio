@@ -1,0 +1,224 @@
+import type { BankDetection, MutationRow, ParsedMutation, ParseMutationOptions } from "./types";
+
+const BALANCE_TOLERANCE = 0.5;
+
+export function detectBank(text: string): BankDetection {
+  const head = text.slice(0, 2000);
+  if (head.includes("Tanggal Transaksi") && head.includes("Keterangan")) return "BCA";
+  if (head.includes("Post Date") && head.includes("Journal No.")) return "BNI";
+  if (head.includes("SALDO_AWAL_MUTASI")) return "BRI";
+  return "UNKNOWN";
+}
+
+export function parseBankMutation(text: string, options: ParseMutationOptions = {}): ParsedMutation {
+  const bank = detectBank(text);
+  if (bank === "BCA") return parseBca(text);
+  if (bank === "BNI") return parseBni(text, options.openingBalance ?? 0);
+  if (bank === "BRI") return parseBri(text);
+  throw new Error("Format mutasi bank belum dikenali. Gunakan file mutasi BCA, BNI, atau BRI.");
+}
+
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') inQuotes = true;
+    else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else if (char !== "\r") {
+      field += char;
+    }
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+export function parseAmount(value: unknown): number {
+  if (value == null) return 0;
+  const raw = String(value).trim();
+  if (!raw) return 0;
+  const withoutCurrency = raw.replace(/[^0-9,.-]/g, "");
+  const lastComma = withoutCurrency.lastIndexOf(",");
+  const lastDot = withoutCurrency.lastIndexOf(".");
+  let normalized = withoutCurrency;
+
+  if (lastComma > lastDot) {
+    normalized = withoutCurrency.replace(/\./g, "").replace(",", ".");
+  } else {
+    normalized = withoutCurrency.replace(/,/g, "");
+  }
+
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseBca(text: string): ParsedMutation {
+  const rows = parseCsv(text);
+  let year = "2000";
+  let openingBalance = 0;
+  let endingBalancePrinted: number | undefined;
+  let headerIndex = -1;
+
+  rows.forEach((row, index) => {
+    const first = row[0]?.trim() ?? "";
+    const fullLine = row.join(",").trim();
+    if (fullLine.startsWith("Periode")) {
+      const match = fullLine.match(/\d{2}\/\d{2}\/(\d{4})/);
+      if (match) year = match[1];
+    }
+    if (first === "Tanggal Transaksi" && row[1]?.trim() === "Keterangan") headerIndex = index;
+    if (fullLine.startsWith("Saldo Awal")) openingBalance = parseAmount(fullLine.split(":").slice(1).join(":"));
+    if (fullLine.startsWith("Saldo Akhir")) endingBalancePrinted = parseAmount(fullLine.split(":").slice(1).join(":"));
+  });
+
+  if (headerIndex === -1) throw new Error("Kolom transaksi BCA tidak ditemukan.");
+
+  const normalizedRows: MutationRow[] = [];
+  let previousBalance = openingBalance;
+
+  for (const row of rows.slice(headerIndex + 1)) {
+    const date = row[0]?.trim();
+    if (!date || date.startsWith("Saldo") || date.startsWith("Mutasi")) continue;
+
+    const line = row.join(",").trim();
+    const transactionMatch = line.match(/^([^,]+),([^,]*),([^,]*),(.+?)\s+(DB|CR),(.+)$/i);
+    if (!transactionMatch) continue;
+
+    const amount = parseAmount(transactionMatch[4]);
+    const isDebit = transactionMatch[5].toUpperCase() === "DB";
+    const debit = isDebit ? amount : 0;
+    const kredit = isDebit ? 0 : amount;
+    const saldo = parseAmount(transactionMatch[6]);
+    const computedSaldo = previousBalance + kredit - debit;
+
+    normalizedRows.push({
+      keterangan: transactionMatch[2].trim(),
+      tanggal: formatBcaDate(date, year),
+      debit,
+      kredit,
+      saldo,
+      computedSaldo,
+      status: isBalanceMatch(computedSaldo, saldo) ? "match" : "mismatch",
+    });
+    previousBalance = saldo;
+  }
+
+  return { bank: "BCA", rows: normalizedRows, openingBalance, endingBalancePrinted, needsOpeningBalance: false };
+}
+
+function parseBni(text: string, openingBalance: number): ParsedMutation {
+  const rows = parseCsv(text);
+  const headerIndex = rows.findIndex((row) => row[0]?.trim() === "Post Date");
+  if (headerIndex === -1) throw new Error("Kolom transaksi BNI tidak ditemukan.");
+
+  const normalizedRows: MutationRow[] = [];
+  let saldo = openingBalance;
+
+  for (const row of rows.slice(headerIndex + 1)) {
+    if (!row[0]?.trim()) continue;
+    const debit = parseAmount(row[5]);
+    const kredit = parseAmount(row[6]);
+    saldo = saldo + kredit - debit;
+    normalizedRows.push({
+      keterangan: (row[4] ?? "").trim(),
+      tanggal: formatSlashDate(row[0] ?? ""),
+      debit,
+      kredit,
+      saldo,
+      computedSaldo: saldo,
+      status: "manual",
+    });
+  }
+
+  return { bank: "BNI", rows: normalizedRows, openingBalance, needsOpeningBalance: true };
+}
+
+function parseBri(text: string): ParsedMutation {
+  const rows = parseCsv(text);
+  const headerIndex = rows.findIndex((row) => row[0]?.trim() === "ID");
+  if (headerIndex === -1) throw new Error("Kolom transaksi BRI tidak ditemukan.");
+
+  const normalizedRows: MutationRow[] = [];
+  let previousEndingBalance: number | null = null;
+  let openingBalance = 0;
+
+  for (const row of rows.slice(headerIndex + 1)) {
+    if (!row[0]?.trim()) continue;
+    const rowOpeningBalance = parseAmount(row[7]);
+    const debit = parseAmount(row[8]);
+    const kredit = parseAmount(row[9]);
+    const saldo = parseAmount(row[10]);
+    const computedSaldo = rowOpeningBalance + kredit - debit;
+    const amountMatches = isBalanceMatch(computedSaldo, saldo);
+    const continuityMatches = previousEndingBalance == null || isBalanceMatch(rowOpeningBalance, previousEndingBalance);
+
+    if (normalizedRows.length === 0) openingBalance = rowOpeningBalance;
+
+    normalizedRows.push({
+      keterangan: (row[18]?.trim() || row[6] || "").trim(),
+      tanggal: formatIsoDate(row[2] ?? ""),
+      debit,
+      kredit,
+      saldo,
+      computedSaldo,
+      status: amountMatches && continuityMatches ? "match" : "mismatch",
+    });
+    previousEndingBalance = saldo;
+  }
+
+  return { bank: "BRI", rows: normalizedRows, openingBalance, needsOpeningBalance: false };
+}
+
+function formatBcaDate(raw: string, year: string): string {
+  const [day = "", month = ""] = raw.split("/");
+  return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+}
+
+function formatSlashDate(raw: string): string {
+  const [datePart] = raw.trim().split(/\s+/);
+  const [day = "", month = "", yearRaw = ""] = datePart.split("/");
+  const year = yearRaw.length === 2 ? `20${yearRaw}` : yearRaw;
+  return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+}
+
+function formatIsoDate(raw: string): string {
+  const [datePart] = raw.trim().split(/\s+/);
+  const [year = "", month = "", day = ""] = datePart.split("-");
+  return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+}
+
+function isBalanceMatch(left: number, right: number): boolean {
+  return Math.abs(left - right) < BALANCE_TOLERANCE;
+}
+
+
+
