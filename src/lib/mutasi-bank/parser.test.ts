@@ -8,6 +8,13 @@ Tanggal Transaksi,Keterangan,Cabang,Jumlah,Saldo
 02/05,BIAYA ADMIN,,50,000.00 DB,1,200,000.00
 Saldo Akhir : 1,200,000.00`;
 
+const bcaCbgText = `Periode : 01/07/2026 - 31/07/2026
+Saldo Awal : 1,410,584,973.34
+Tanggal Transaksi,Keterangan,Cabang,Jumlah,Saldo
+"01/07","TRSF E-BANKING DB 0107/FTSCY/WS95051 125501327.00 fk.8373,8363 tg.30/05/26 JAPFA FOOD INDONES  ","0032","125,501,327.00 DB","1,285,083,646.34"
+"01/08","TRANSFER MASUK","0032","250,000.00 CR","1,285,333,646.34"
+Saldo Akhir : 1,285,333,646.34`;
+
 const bniText = `Post Date,Value Date,Branch,Journal No.,Description,Debit,Credit
 01/05/26 10:00,01/05/26,001,ABC001,SETORAN TUNAI,,300000
 02/05/26 12:30,02/05/26,001,ABC002,TARIK TUNAI,125000,`;
@@ -98,6 +105,19 @@ describe("parseBankMutation", () => {
       kredit: 0,
       saldo: 675000,
       computedSaldo: 675000,
+    });
+  });
+
+  test("keeps the CBG (Cabang) column out of the BCA amount when the description contains commas", () => {
+    const result = parseBankMutation(bcaCbgText);
+
+    expect(result.bank).toBe("BCA");
+    expect(result.rows.map((row) => row.debit)).toEqual([125501327, 0]);
+    expect(result.rows.map((row) => row.kredit)).toEqual([0, 250000]);
+    expect(result.rows.map((row) => row.saldo)).toEqual([1285083646.34, 1285333646.34]);
+    expect(result.rows[0]).toMatchObject({
+      keterangan: "TRSF E-BANKING DB 0107/FTSCY/WS95051 125501327.00 fk.8373,8363 tg.30/05/26 JAPFA FOOD INDONES",
+      tanggal: "01/07/2026",
     });
   });
 

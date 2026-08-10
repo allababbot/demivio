@@ -102,6 +102,13 @@ function parseBca(text: string): ParsedMutation {
 
   if (headerIndex === -1) throw new Error("Kolom transaksi BCA tidak ditemukan.");
 
+  const header = rows[headerIndex];
+  const columnIndex = (name: string) => header.findIndex((cell) => cell.trim().toLowerCase() === name);
+  const keteranganIndex = columnIndex("keterangan");
+  const jumlahIndex = columnIndex("jumlah");
+  const saldoIndex = columnIndex("saldo");
+  const hasColumns = keteranganIndex >= 0 && jumlahIndex >= 0 && saldoIndex >= 0;
+
   const normalizedRows: MutationRow[] = [];
   let previousBalance = openingBalance;
 
@@ -109,19 +116,40 @@ function parseBca(text: string): ParsedMutation {
     const date = row[0]?.trim();
     if (!date || date.startsWith("Saldo") || date.startsWith("Mutasi")) continue;
 
-    const line = row.join(",").trim();
-    const transactionMatch = line.match(/^([^,]+),([^,]*),([^,]*),(.+?)\s+(DB|CR),(.+)$/i);
-    if (!transactionMatch) continue;
+    // Prefer reading columns directly: quoted exports parse to one field per
+    // column, so the CBG (Cabang) values stay out of the amount even when the
+    // description contains commas. Unquoted exports can't be split reliably, so
+    // fall back to matching the reconstructed line as a whole.
+    const useColumns = hasColumns && row.length === header.length;
+    const amountCell = useColumns ? (row[jumlahIndex] ?? "").trim() : undefined;
+    const amountMatch = amountCell ? amountCell.match(/^(.*)\s+(DB|CR)$/i) : undefined;
 
-    const amount = parseAmount(transactionMatch[4]);
-    const isDebit = transactionMatch[5].toUpperCase() === "DB";
+    let keterangan: string;
+    let amount: number;
+    let isDebit: boolean;
+    let saldo: number;
+
+    if (amountMatch) {
+      keterangan = (row[keteranganIndex] ?? "").trim();
+      amount = parseAmount(amountMatch[1]);
+      isDebit = amountMatch[2].toUpperCase() === "DB";
+      saldo = parseAmount(row[saldoIndex]);
+    } else {
+      const line = row.join(",").trim();
+      const legacyMatch = line.match(/^([^,]+),([^,]*),([^,]*),(.+?)\s+(DB|CR),(.+)$/i);
+      if (!legacyMatch) continue;
+      keterangan = legacyMatch[2].trim();
+      amount = parseAmount(legacyMatch[4]);
+      isDebit = legacyMatch[5].toUpperCase() === "DB";
+      saldo = parseAmount(legacyMatch[6]);
+    }
+
     const debit = isDebit ? amount : 0;
     const kredit = isDebit ? 0 : amount;
-    const saldo = parseAmount(transactionMatch[6]);
     const computedSaldo = previousBalance + kredit - debit;
 
     normalizedRows.push({
-      keterangan: transactionMatch[2].trim(),
+      keterangan,
       tanggal: formatBcaDate(date, year),
       debit,
       kredit,
