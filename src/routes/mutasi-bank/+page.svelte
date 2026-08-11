@@ -507,7 +507,7 @@
   .processing-fill { height: 100%; width: 40%; background: linear-gradient(90deg, var(--primary), var(--primary-dark)); border-radius: 2px; animation: slide 1s ease-in-out infinite alternate; }
   @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
 
-  .file-list { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); }
+  .file-list { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); max-height: 240px; overflow-y: auto; }
   .file-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
   .file-row .file-icon { width: 16px; height: 16px; flex-shrink: 0; }
   .file-row .file-name { flex: 1; font-size: var(--text-sm); font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -548,8 +548,37 @@
   .badge-danger { background: oklch(65% 0.2 25 / 0.1); color: oklch(45% 0.2 25); border: 1px solid oklch(65% 0.2 25 / 0.2); }
 
   .content-grid { display: grid; grid-template-columns: 320px 1fr; min-height: 520px; }
-  .file-panel { border-right: 1px solid var(--border); background: var(--surface-alt); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); border-bottom-left-radius: var(--radius-card); }
-  .file-item { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: var(--space-3); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; text-align: left; transition: var(--transition); }
+  .file-panel {
+    border-right: 1px solid var(--border);
+    background: var(--surface-alt);
+    padding: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    border-bottom-left-radius: var(--radius-card);
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .file-panel::-webkit-scrollbar,
+  .file-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .file-panel::-webkit-scrollbar-track,
+  .file-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .file-panel::-webkit-scrollbar-thumb,
+  .file-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
+  .file-panel::-webkit-scrollbar-thumb:hover,
+  .file-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+
+  .file-item { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: var(--space-3); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; text-align: left; transition: var(--transition); flex-shrink: 0; }
   .file-item:hover, .file-item.active { border-color: var(--primary); box-shadow: var(--shadow-sm); }
   .file-item.error { border-color: oklch(65% 0.2 25 / 0.35); }
   .bank-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--text-muted); flex-shrink: 0; }
@@ -613,7 +642,7 @@
 
   @media (max-width: 900px) {
     .content-grid { grid-template-columns: 1fr; }
-    .file-panel { border-right: none; border-bottom: 1px solid var(--border); border-bottom-left-radius: 0; }
+    .file-panel { border-right: none; border-bottom: 1px solid var(--border); border-bottom-left-radius: 0; max-height: 280px; }
     .preview-panel { border-bottom-left-radius: var(--radius-card); }
   }
 </style>
