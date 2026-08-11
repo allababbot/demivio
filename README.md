@@ -20,7 +20,16 @@ Membandingkan dan mencocokkan data transaksi penjualan bulanan antara sistem per
 - **Deteksi selisih** — menyoroti baris transaksi yang memiliki perbedaan pada nilai DPP maupun PPN.
 - **Filter & sort** — quick-filter untuk melihat data Hanya Coretax, Hanya Aplikasi, atau Ada Selisih, dengan pengurutan terintegrasi.
 
-### 3. Faktur Extractor
+### 3. Mutasi Bank
+
+Mengubah raw data mutasi rekening bank menjadi file Excel standar yang siap dianalisis atau direkonsiliasi.
+
+- **Deteksi bank otomatis** — mengenali format mutasi BCA, BNI, dan BRI.
+- **Normalisasi kolom** — menghasilkan format seragam: Keterangan, Tanggal, Debit, Kredit, Saldo, dan Status.
+- **Validasi saldo** — menghitung ulang saldo BCA/BRI baris demi baris dan menandai baris yang selisih. Untuk BNI, saldo dihitung dari saldo awal manual.
+- **Export Excel** — unduh per file atau gabungkan banyak file dalam satu workbook.
+
+### 4. Faktur Extractor
 
 Mengekstrak data terstruktur dari file PDF Faktur Pajak (e-Faktur DJP).
 
@@ -30,7 +39,7 @@ Mengekstrak data terstruktur dari file PDF Faktur Pajak (e-Faktur DJP).
 - **Export Excel** — satu baris per barang/jasa, termasuk metadata faktur (DPP, PPN, PPnBM). Format tanggal dikonversi otomatis ke DD/MM/YYYY saat export.
 - **Export semua sekaligus** — gabungkan hasil dari banyak PDF ke satu file Excel.
 
-### 4. BPPU Extractor
+### 5. BPPU Extractor
 
 Mengekstrak data terstruktur dari file PDF Bukti Pemotongan/Pemungutan Unifikasi (BPPU) Coretax.
 
@@ -54,6 +63,13 @@ Mengekstrak data terstruktur dari file PDF Bukti Pemotongan/Pemungutan Unifikasi
 2. Unggah file dari **Coretax** dan file dari **Aplikasi Penjualan**.
 3. Tabel otomatis menampilkan perbandingan dan menyorot baris yang ada selisih.
 4. Klik baris mana saja untuk melihat rincian sumber aslinya.
+
+### Mutasi Bank
+
+1. Drag & drop atau pilih satu atau lebih file mutasi **BCA**, **BNI**, atau **BRI**.
+2. Sistem otomatis mendeteksi bank dan menampilkan preview dalam kolom standar.
+3. Untuk file **BNI**, masukkan **Saldo Awal** agar saldo berjalan dapat dihitung.
+4. Klik **Excel File Ini** untuk mengunduh satu file, atau **Export Semua Excel** untuk workbook gabungan.
 
 ### Faktur Extractor
 

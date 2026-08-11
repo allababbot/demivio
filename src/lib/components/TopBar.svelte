@@ -8,6 +8,7 @@
   const navLinks = [
     { href: "/kalkulator", label: "Kalkulator PPN" },
     { href: "/rekonsiliasi", label: "Rekonsiliasi" },
+    { href: "/mutasi-bank", label: "Mutasi Bank" },
     { href: "/ekstraktor", label: "Ekstraktor" },
   ];
 
@@ -15,6 +16,7 @@
     const path = $page.url.pathname;
     if (path === "/") return false;
     if (href === "/kalkulator") return path === "/kalkulator";
+    if (href === "/mutasi-bank") return path === "/mutasi-bank";
     if (href === "/ekstraktor") return path === "/ekstraktor" || path === "/bppu" || path === "/faktur";
     return path.startsWith(href);
   }
@@ -297,3 +299,4 @@
     }
   }
 </style>
+
