@@ -41,6 +41,20 @@ export function createCombinedMutationWorkbook(sources: MutationWorkbookSource[]
   return workbook;
 }
 
+export function createSingleSheetCombinedMutationWorkbook(sources: MutationWorkbookSource[]): XLSX.WorkBook {
+  const workbook = XLSX.utils.book_new();
+  const combinedRows = [
+    COMBINED_HEADERS,
+    ...sources.flatMap(({ fileName, parsed }) =>
+      parsed.rows.map((row) => [parsed.bank, fileName, ...mutationRowToCells(row)]),
+    ),
+  ];
+  const combinedSheet = XLSX.utils.aoa_to_sheet(combinedRows);
+  combinedSheet["!cols"] = COMBINED_COLUMN_WIDTHS.map((wch) => ({ wch }));
+  XLSX.utils.book_append_sheet(workbook, combinedSheet, "Gabungan");
+  return workbook;
+}
+
 export function mutationFileName(fileName: string, suffix = "mutasi-bank"): string {
   return `${baseFileName(fileName)}_${suffix}.xlsx`;
 }

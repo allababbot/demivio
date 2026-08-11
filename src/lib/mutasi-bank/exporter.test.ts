@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import * as XLSX from "xlsx";
-import { createCombinedMutationWorkbook, createMutationWorkbook, safeSheetName } from "./exporter";
+import { createCombinedMutationWorkbook, createMutationWorkbook, createSingleSheetCombinedMutationWorkbook, safeSheetName } from "./exporter";
 import type { ParsedMutation } from "./types";
 
 const parsed: ParsedMutation = {
@@ -48,6 +48,18 @@ describe("createCombinedMutationWorkbook", () => {
     ]);
 
     expect(workbook.SheetNames).toEqual(["Gabungan", "BCA rekening-bca", "BNI rekening-bni"]);
+    const combinedRows = XLSX.utils.sheet_to_json<string[]>(workbook.Sheets.Gabungan, { header: 1 });
+    expect(combinedRows[0]).toEqual(["BANK", "FILE", "KETERANGAN", "TANGGAL", "DEBIT", "KREDIT", "SALDO", "STATUS"]);
+    expect(combinedRows).toHaveLength(3);
+  });
+
+  test("creates a combined workbook with only one sheet named Gabungan", () => {
+    const workbook = createSingleSheetCombinedMutationWorkbook([
+      { fileName: "rekening-bca.csv", parsed },
+      { fileName: "rekening-bni.csv", parsed: { ...parsed, bank: "BNI", needsOpeningBalance: true } },
+    ]);
+
+    expect(workbook.SheetNames).toEqual(["Gabungan"]);
     const combinedRows = XLSX.utils.sheet_to_json<string[]>(workbook.Sheets.Gabungan, { header: 1 });
     expect(combinedRows[0]).toEqual(["BANK", "FILE", "KETERANGAN", "TANGGAL", "DEBIT", "KREDIT", "SALDO", "STATUS"]);
     expect(combinedRows).toHaveLength(3);
