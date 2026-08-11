@@ -121,6 +121,52 @@ describe("parseBankMutation", () => {
     });
   });
 
+  test("handles whole-line escaped CSV exports", () => {
+    const escapedText = `"Periode : 01/06/2026 - 30/06/2026"\n"Saldo Awal : 1,000,000.00"\n"Tanggal Transaksi,""Keterangan"",""Cabang"",""Jumlah"",""Saldo"""\n"01/06,""DB OTOMATIS B.ADM KLIRING      "",""0032"",""240,000.00 DB"",""760,000.00"""`;
+    const result = parseBankMutation(escapedText);
+
+    expect(result.bank).toBe("BCA");
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toMatchObject({
+      keterangan: "DB OTOMATIS B.ADM KLIRING",
+      tanggal: "01/06/2026",
+      debit: 240000,
+      kredit: 0,
+      saldo: 760000,
+      computedSaldo: 760000,
+      status: "match",
+    });
+  });
+
+  test("parses root BCA and BRI sample files cleanly", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const path05 = path.resolve("BCA 05 26.xls");
+    const path06 = path.resolve("BCA 06 26.xls");
+    const pathBri01 = path.resolve("BRI 01 26.xls");
+
+    if (fs.existsSync(path05)) {
+      const res05 = parseBankMutation(fs.readFileSync(path05, "latin1"));
+      expect(res05.bank).toBe("BCA");
+      expect(res05.rows.length).toBeGreaterThan(0);
+      expect(res05.rows.filter((r) => r.status === "mismatch")).toHaveLength(0);
+    }
+
+    if (fs.existsSync(path06)) {
+      const res06 = parseBankMutation(fs.readFileSync(path06, "latin1"));
+      expect(res06.bank).toBe("BCA");
+      expect(res06.rows.length).toBeGreaterThan(0);
+      expect(res06.rows.filter((r) => r.status === "mismatch")).toHaveLength(0);
+    }
+
+    if (fs.existsSync(pathBri01)) {
+      const resBri = parseBankMutation(fs.readFileSync(pathBri01, "latin1"));
+      expect(resBri.bank).toBe("BRI");
+      expect(resBri.rows.length).toBe(676);
+      expect(resBri.rows.filter((r) => r.status === "mismatch")).toHaveLength(0);
+    }
+  });
+
   test("throws a helpful error for unsupported layouts", () => {
     expect(() => parseBankMutation("foo,bar\n1,2")).toThrow("Format mutasi bank belum dikenali");
   });

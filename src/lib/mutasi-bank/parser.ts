@@ -18,17 +18,34 @@ export function parseBankMutation(text: string, options: ParseMutationOptions = 
   throw new Error("Format mutasi bank belum dikenali. Gunakan file mutasi BCA, BNI, atau BRI.");
 }
 
+export function preprocessCsvText(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length > 2) {
+        if (/,""[^,]/.test(trimmed)) {
+          const inner = trimmed.slice(1, -1);
+          return inner.replace(/""/g, '"');
+        }
+      }
+      return line;
+    })
+    .join("\n");
+}
+
 export function parseCsv(text: string): string[][] {
+  const cleanedText = preprocessCsvText(text);
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
   let inQuotes = false;
 
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
+  for (let i = 0; i < cleanedText.length; i++) {
+    const char = cleanedText[i];
     if (inQuotes) {
       if (char === '"') {
-        if (text[i + 1] === '"') {
+        if (cleanedText[i + 1] === '"') {
           field += '"';
           i++;
         } else {
@@ -195,25 +212,38 @@ function parseBri(text: string): ParsedMutation {
   const headerIndex = rows.findIndex((row) => row[0]?.trim() === "ID");
   if (headerIndex === -1) throw new Error("Kolom transaksi BRI tidak ditemukan.");
 
+  const header = rows[headerIndex];
+  const columnIndex = (name: string) => header.findIndex((cell) => cell.trim().toLowerCase() === name);
+
+  const tglIdx = columnIndex("tgl_transaksi") >= 0 ? columnIndex("tgl_transaksi") : 2;
+  const deskripsiIdx = columnIndex("deskripsi") >= 0 ? columnIndex("deskripsi") : 6;
+  const saldoAwalIdx = columnIndex("saldo_awal") >= 0 ? columnIndex("saldo_awal") : 7;
+  const debetIdx = columnIndex("debet") >= 0 ? columnIndex("debet") : 8;
+  const kreditIdx = columnIndex("kredit") >= 0 ? columnIndex("kredit") : 9;
+  const saldoAkhirIdx = columnIndex("saldo_akhir") >= 0 ? columnIndex("saldo_akhir") : 10;
+  const remarkCustomIdx = columnIndex("remark_custom") >= 0 ? columnIndex("remark_custom") : 18;
+
   const normalizedRows: MutationRow[] = [];
   let previousEndingBalance: number | null = null;
   let openingBalance = 0;
 
   for (const row of rows.slice(headerIndex + 1)) {
     if (!row[0]?.trim()) continue;
-    const rowOpeningBalance = parseAmount(row[7]);
-    const debit = parseAmount(row[8]);
-    const kredit = parseAmount(row[9]);
-    const saldo = parseAmount(row[10]);
+    const rowOpeningBalance = parseAmount(row[saldoAwalIdx]);
+    const debit = parseAmount(row[debetIdx]);
+    const kredit = parseAmount(row[kreditIdx]);
+    const saldo = parseAmount(row[saldoAkhirIdx]);
     const computedSaldo = rowOpeningBalance + kredit - debit;
     const amountMatches = isBalanceMatch(computedSaldo, saldo);
     const continuityMatches = previousEndingBalance == null || isBalanceMatch(rowOpeningBalance, previousEndingBalance);
 
     if (normalizedRows.length === 0) openingBalance = rowOpeningBalance;
 
+    const keterangan = (row[remarkCustomIdx]?.trim() || row[deskripsiIdx] || "").trim();
+
     normalizedRows.push({
-      keterangan: (row[18]?.trim() || row[6] || "").trim(),
-      tanggal: formatIsoDate(row[2] ?? ""),
+      keterangan,
+      tanggal: formatIsoDate(row[tglIdx] ?? ""),
       debit,
       kredit,
       saldo,
