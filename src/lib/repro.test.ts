@@ -32,7 +32,7 @@ describe("Reproduction of integer constraint", () => {
 			topNResults: 10,
 		};
 
-		const results = runSimulation(config);
+		const { results } = runSimulation(config);
 		console.log("Results with Tol 1:", results.length);
 		expect(results.length).toBe(0); // Should be 0 now!
 	});
@@ -56,7 +56,7 @@ describe("Reproduction of integer constraint", () => {
 			topNResults: 10,
 		};
 
-		const results = runSimulation(config);
+		const { results } = runSimulation(config);
 		console.log("Results with Tol 300:", results.length);
 		if (results.length > 0) {
 			console.log("Found integer result:", {
@@ -88,7 +88,7 @@ describe("Reproduction of integer constraint", () => {
 			topNResults: 10,
 		};
 
-		const results = runSimulation(config);
+		const { results } = runSimulation(config);
 		expect(results.length).toBe(0); // Consistency!
 	});
 });

@@ -119,7 +119,7 @@ describe('runSimulation', () => {
     const config = createConfig({
       tolerance: new Decimal(1000),
     });
-    const results = runSimulation(config);
+    const { results } = runSimulation(config);
     for (let i = 1; i < results.length; i++) {
       expect(results[i].score.gte(results[i - 1].score)).toBe(true);
     }
@@ -130,14 +130,14 @@ describe('runSimulation', () => {
       topNResults: 3,
       tolerance: new Decimal(10000),
     });
-    const results = runSimulation(config);
+    const { results } = runSimulation(config);
     expect(results.length).toBeLessThanOrEqual(3);
   });
 
   it('should only return results within tolerance', () => {
     const tol = new Decimal(100);
     const config = createConfig({ tolerance: tol });
-    const results = runSimulation(config);
+    const { results } = runSimulation(config);
     for (const r of results) {
       expect(r.ppnDifference.lte(tol)).toBe(true);
     }
@@ -149,7 +149,7 @@ describe('runSimulation', () => {
       priceMax: new Decimal(50000),
       tolerance: new Decimal(5000),
     });
-    const results = runSimulation(config);
+    const { results } = runSimulation(config);
     for (const r of results) {
       expect(r.transaction.unitPrice.toNumber()).toBe(50000);
     }
@@ -165,7 +165,7 @@ describe('runSimulation', () => {
       discountMax: new Decimal(15000),
       tolerance: new Decimal(200000),
     });
-    const results = runSimulation(config);
+    const { results } = runSimulation(config);
     // With everything locked, we get a single result
     expect(results.length).toBeLessThanOrEqual(1);
   });
@@ -181,7 +181,7 @@ describe('runSimulation', () => {
 
   it('should include humanScore in results', () => {
     const config = createConfig({ tolerance: new Decimal(5000) });
-    const results = runSimulation(config);
+    const { results } = runSimulation(config);
     for (const r of results) {
       expect(r.humanScore).toBeDefined();
       expect(r.humanScore.accuracy).toBeGreaterThanOrEqual(0);
