@@ -9,13 +9,17 @@
 <div class="home animate-in">
   <!-- Hero -->
   <section class="hero">
-    <h1 class="hero-title">
-      <span class="hero-emblem">Demivio</span>
-    </h1>
+    <h1 class="hero-title">Demivio</h1>
+    <div class="hero-rule" aria-hidden="true">
+      <span class="hero-rule-line"></span>
+      <span class="hero-rule-rate">11%</span>
+      <span class="hero-rule-line"></span>
+    </div>
     <p class="hero-tagline">
-      Utilitas pajak yang cepat, akurat, dan sepenuhnya di sisi klien.
+      Kalkulasi, rekonsiliasi, dan ekstraksi pajak — langsung dari browser Anda.
     </p>
     <p class="hero-note">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
       Semua data diproses di browser Anda. Tidak ada yang dikirim ke server.
     </p>
   </section>
@@ -130,40 +134,74 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-5);
+    padding-bottom: var(--space-4);
   }
 
   .hero-title {
-    font-size: var(--text-2xl);
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    font-size: clamp(2.5rem, 2rem + 3vw, 4rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
     margin: 0;
-  }
-
-  .hero-emblem {
     color: var(--primary-dark);
+    line-height: 1.05;
   }
 
-  :global([data-theme="dark"]) .hero-emblem {
+  :global([data-theme="dark"]) .hero-title {
     color: var(--primary-light);
   }
 
+  /* Signature element: ledger rule with PPN rate */
+  .hero-rule {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .hero-rule-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border-strong);
+  }
+
+  .hero-rule-rate {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    color: var(--primary);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    padding: var(--space-1) 0;
+  }
+
   .hero-tagline {
-    font-size: var(--text-base);
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
     color: var(--text-muted);
     margin: 0;
-    max-width: 480px;
-    line-height: 1.5;
+    max-width: 520px;
+    line-height: 1.6;
   }
 
   .hero-note {
-    font-size: var(--text-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
     color: var(--text-muted);
     margin: 0;
-    opacity: 0.7;
+    opacity: 0.6;
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .hero-note svg {
+    flex-shrink: 0;
+    opacity: 0.7;
   }
 
   /* Tool Cards Grid */
