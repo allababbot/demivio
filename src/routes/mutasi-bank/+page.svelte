@@ -607,8 +607,7 @@
     font-size: var(--text-sm);
     font-weight: 800;
   }
-  .summary-input:focus {
-    outline: none;
+  .summary-input:focus-visible {
     border-color: var(--primary);
     box-shadow: 0 0 0 2px oklch(65% 0.18 var(--brand-h) / 0.2);
   }

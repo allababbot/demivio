@@ -601,8 +601,7 @@
         min-width: 240px;
         max-width: 380px;
     }
-    .format-select:focus {
-        outline: none;
+    .format-select:focus-visible {
         background: var(--surface);
         color: var(--primary-dark);
     }
@@ -610,7 +609,7 @@
         background: var(--surface);
         color: var(--text);
     }
-    :global([data-theme="dark"]) .format-select:focus {
+    :global([data-theme="dark"]) .format-select:focus-visible {
         color: var(--primary-light, var(--primary));
     }
     .format-select option { background: var(--surface); color: var(--text); }

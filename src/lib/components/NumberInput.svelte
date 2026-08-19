@@ -163,8 +163,7 @@
     padding-right: 2.5rem;
   }
 
-  input:focus {
-    outline: none;
+  input:focus-visible {
     border-color: var(--primary);
   }
 

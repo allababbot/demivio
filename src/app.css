@@ -343,8 +343,19 @@ input[type="text"], input[type="number"] {
   transition: var(--transition);
 }
 
-input:focus {
+/* Focus-visible: keyboard accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: none;
+}
+
+input:focus-visible {
   border-color: var(--primary);
   background: var(--surface);
   box-shadow: 0 0 0 4px oklch(65% 0.18 var(--brand-h) / 0.1);

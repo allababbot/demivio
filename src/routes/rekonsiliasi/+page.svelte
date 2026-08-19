@@ -1656,8 +1656,7 @@
     transition: var(--transition);
   }
 
-  .search-input:focus {
-    outline: none;
+  .search-input:focus-visible {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px var(--primary-muted);
   }
