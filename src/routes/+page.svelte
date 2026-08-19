@@ -216,6 +216,7 @@
   }
 
   .tool-name {
+    font-family: var(--font-body);
     font-size: var(--text-base);
     font-weight: 700;
     margin: 0 0 var(--space-1);

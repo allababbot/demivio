@@ -1809,6 +1809,7 @@
   }
 
   .dialog-title {
+    font-family: var(--font-body);
     margin: 0;
     font-size: var(--text-base);
     font-weight: 800;

@@ -266,6 +266,7 @@
   }
 
   .modal-header h2 {
+    font-family: var(--font-body);
     margin: 0;
     font-size: var(--text-base);
     font-weight: 800;
@@ -357,6 +358,7 @@
   }
 
   .help-tab-content h3 {
+    font-family: var(--font-body);
     margin-top: 1.5rem;
     margin-bottom: 0.75rem;
     color: var(--primary);
